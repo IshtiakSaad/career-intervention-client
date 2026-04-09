@@ -1,0 +1,37 @@
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+    ...nextVitals,
+    ...nextTs,
+    // Override default ignores of eslint-config-next.
+    globalIgnores([
+        // Default ignores of eslint-config-next:
+        ".next/**",
+        "out/**",
+        "build/**",
+        "next-env.d.ts",
+    ]),
+    {
+        rules: {
+            "no-restricted-imports": [
+                "error",
+                {
+                    "patterns": [
+                        {
+                            "group": ["@features/*/*"],
+                            "message": "Direct deep imports from features are forbidden. Use @features/[feature] if using re-exports, or @shared for shared logic."
+                        },
+                        {
+                            "group": ["../**", "./**"],
+                            "message": "Relative imports are discouraged for feature components. Use path aliases."
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+]);
+
+export default eslintConfig;
