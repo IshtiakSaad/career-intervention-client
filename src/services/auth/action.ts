@@ -46,11 +46,10 @@ export async function registerUserAction(
 
         revalidatePath("/");
         
-        return {
-            success: true,
-            message: "Account created successfully! Redirecting back to login...",
-            data: result.data,
-        };
+        // -----------------------------------------------------
+        // AUTOMATIC LOGIN AFTER REGISTRATION
+        // -----------------------------------------------------
+        return await loginUserAction(_prevState, formData);
 
     } catch (error) {
         console.error("[REGISTER_ACTION_ERROR]:", error);

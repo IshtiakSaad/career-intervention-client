@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useActionState, useState } from "react";
+import React, { useActionState, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,8 +18,34 @@ import { User, Mail, Lock, Phone, Image, Target, Globe, Loader2 } from "lucide-r
 import { registerUserAction } from "@/services/auth";
 
 const RegisterForm = () => {
+    const router = useRouter();
     const [state, formAction, isPending] = useActionState(registerUserAction, null);
     const [gender, setGender] = useState<string>("");
+
+    useEffect(() => {
+        if (state?.success) {
+            // Give the user a moment to see the success message
+            const timer = setTimeout(() => {
+                // If the token is in the data, try to decode and redirect to specific dashboard
+                const accessToken = state.data?.token || state.data?.accessToken;
+                if (accessToken) {
+                    try {
+                        const decoded: any = jwtDecode(accessToken);
+                        const role = decoded?.roles?.[0]?.toUpperCase();
+                        if (role === "ADMIN") router.push("/dashboard/admin");
+                        else if (role === "MENTOR") router.push("/dashboard/mentor");
+                        else if (role === "MENTEE") router.push("/dashboard/mentee");
+                        else router.push("/dashboard");
+                    } catch (e) {
+                        router.push("/dashboard");
+                    }
+                } else {
+                    router.push("/dashboard");
+                }
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [state?.success, state?.data, router]);
 
     return (
         <div className="w-full">
