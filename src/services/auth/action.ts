@@ -1,5 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { parse } from "cookie";
 import { revalidatePath } from "next/cache";
 import { registerValidationSchema, loginValidationSchema } from "./auth.validation";
 import { TActionState } from "./auth.types";
@@ -99,6 +101,41 @@ export async function loginUserAction(
             };
         }
 
+        // -----------------------------------------------------
+        // NEXT.JS BACKEND COOKIE STORAGE 
+        // -----------------------------------------------------
+        const cookieStore = await cookies();
+
+        // 1. Grab the Access Token from JSON Data
+        const accessToken = result.data?.token || result.data?.accessToken;
+        if (accessToken) {
+            cookieStore.set("accessToken", accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 15, // 15 Mins
+            });
+        }
+
+        // 2. Grab the Refresh Token from the Backend's Set-Cookie Headers
+        const setCookieHeaders = response.headers.getSetCookie();
+        if (setCookieHeaders && setCookieHeaders.length > 0) {
+            setCookieHeaders.forEach((cookieString: string) => {
+                const parsedCookie = parse(cookieString);
+
+                if (parsedCookie['refreshToken']) {
+                    cookieStore.set("refreshToken", parsedCookie['refreshToken'], {
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === "production",
+                        sameSite: "lax", // Keep SameSite strict or lax for security
+                        path: "/", // Ensure it covers the whole site (or /api for stricter security)
+                        maxAge: 60 * 60 * 24 * 7, // 7 Days
+                    });
+                }
+            });
+        }
+
         revalidatePath("/");
         
         return {
@@ -115,3 +152,4 @@ export async function loginUserAction(
         };
     }
 }
+
