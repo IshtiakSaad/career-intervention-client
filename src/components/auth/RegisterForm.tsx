@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useActionState, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -16,40 +15,32 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { User, Mail, Lock, Phone, Image, Target, Globe, Loader2 } from "lucide-react";
 import { registerUserAction } from "@/services/auth";
+import { FieldError } from "@/components/shared/forms/FieldError";
 
 const RegisterForm = () => {
-    const router = useRouter();
     const [state, formAction, isPending] = useActionState(registerUserAction, null);
     const [gender, setGender] = useState<string>("");
 
     useEffect(() => {
-        if (state?.success) {
-            // Give the user a moment to see the success message
-            const timer = setTimeout(() => {
-                // If the token is in the data, try to decode and redirect to specific dashboard
-                const accessToken = state.data?.token || state.data?.accessToken;
-                if (accessToken) {
-                    try {
-                        const decoded: any = jwtDecode(accessToken);
-                        const role = decoded?.roles?.[0]?.toUpperCase();
-                        if (role === "ADMIN") router.push("/dashboard/admin");
-                        else if (role === "MENTOR") router.push("/dashboard/mentor");
-                        else if (role === "MENTEE") router.push("/dashboard/mentee");
-                        else router.push("/dashboard");
-                    } catch (e) {
-                        router.push("/dashboard");
-                    }
-                } else {
-                    router.push("/dashboard");
-                }
-            }, 2000);
-            return () => clearTimeout(timer);
+        if (!state) return;
+        if (state.success) {
+            toast.success(state.message || "Registration successful!", { id: "auth" });
+        } else {
+            toast.error(state.message || "Registration failed. Please check the form.", { id: "auth" });
         }
-    }, [state?.success, state?.data, router]);
+    }, [state]);
+
+    // Cleanup on generic unmount (when redirecting)
+    useEffect(() => {
+        return () => { toast.dismiss("auth"); };
+    }, []);
 
     return (
         <div className="w-full">
-            <form action={formAction}>
+            <form action={(formData) => {
+                toast.loading("Creating your profile...", { id: "auth" });
+                formAction(formData);
+            }}>
                 <div className="flex flex-col gap-5">
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -65,9 +56,7 @@ const RegisterForm = () => {
                                 placeholder="Enter your full name"
                                 className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                             />
-                            {state?.errors?.name && (
-                                <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.name[0]}</p>
-                            )}
+                            <FieldError errors={state?.errors} name="name" />
                         </div>
                         <div className="grid gap-2 text-left">
                             <Label htmlFor="email" className="flex items-center gap-2">
@@ -82,9 +71,7 @@ const RegisterForm = () => {
                                 required
                                 className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                             />
-                            {state?.errors?.email && (
-                                <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.email[0]}</p>
-                            )}
+                            <FieldError errors={state?.errors} name="email" />
                         </div>
                     </div>
 
@@ -102,9 +89,7 @@ const RegisterForm = () => {
                             placeholder="••••••••"
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                         />
-                        {state?.errors?.password && (
-                            <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.password[0]}</p>
-                        )}
+                        <FieldError errors={state?.errors} name="password" />
                     </div>
 
                     {/* Contact & Gender */}
@@ -121,9 +106,7 @@ const RegisterForm = () => {
                                 placeholder="+880 1700 000 000"
                                 className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                             />
-                            {state?.errors?.phoneNumber && (
-                                <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.phoneNumber[0]}</p>
-                            )}
+                            <FieldError errors={state?.errors} name="phoneNumber" />
                         </div>
                         <div className="grid gap-2 text-left">
                             <Label htmlFor="gender-select" className="flex items-center gap-2">
@@ -141,9 +124,7 @@ const RegisterForm = () => {
                                     <SelectItem value="OTHERS">Other</SelectItem>
                                 </SelectContent>
                             </Select>
-                            {state?.errors?.gender && (
-                                <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.gender[0]}</p>
-                            )}
+                            <FieldError errors={state?.errors} name="gender" />
                         </div>
                     </div>
 
@@ -160,9 +141,7 @@ const RegisterForm = () => {
                             accept="image/*"
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans cursor-pointer"
                         />
-                        {state?.errors?.file && (
-                            <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.file[0]}</p>
-                        )}
+                        <FieldError errors={state?.errors} name="file" />
                         <p className="text-[10px] text-muted-foreground/60 uppercase tracking-tighter pl-1">JPG, PNG or GIF (Max 5MB)</p>
                     </div>
 
@@ -178,9 +157,7 @@ const RegisterForm = () => {
                             placeholder="Tell us about your professional aspirations..."
                             className="min-h-[80px] bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all resize-none font-sans"
                         />
-                        {state?.errors?.careerGoals && (
-                            <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.careerGoals[0]}</p>
-                        )}
+                        <FieldError errors={state?.errors} name="careerGoals" />
                     </div>
 
                     {/* Feedback Messages */}

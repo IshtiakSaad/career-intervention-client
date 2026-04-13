@@ -2,6 +2,7 @@ import { jwtDecode } from 'jwt-decode';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getDefaultDashboardRoute, getRouteOwner, isAuthRoute, UserRole } from './lib/auth-utils';
+import { JWTPayloadSchema } from './services/auth/auth.types';
 
 export async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
@@ -11,23 +12,29 @@ export async function proxy(request: NextRequest) {
 
     let userRole: UserRole | null = null;
 
-    // 1. Edge-Safe JWT Decoding
+    // 1. Edge-Safe JWT Decoding & Basic Verification
     if (accessToken) {
         try {
-            // Using jwtDecode skips signature verification (Edge compatible).
-            // Signature verification is performed by your backend API on every data request.
-            const decoded: any = jwtDecode(accessToken);
+            const rawDecoded = jwtDecode(accessToken);
             
-            // Your backend sends roles as an array: e.g., ["MENTEE"]
-            const roles = decoded.roles || [];
-            if (roles.length > 0) {
-                userRole = roles[0] as UserRole;
-            } else {
-                throw new Error("No roles found in token");
+            // Validate schema
+            const validated = JWTPayloadSchema.safeParse(rawDecoded);
+            if (!validated.success) {
+                throw new Error("Invalid token payload structure");
             }
+
+            const decoded = validated.data;
+            
+            // Check expiry (essential security)
+            const currentTime = Math.floor(Date.now() / 1000);
+            if (decoded.exp && decoded.exp < currentTime) {
+                throw new Error("Token expired");
+            }
+
+            userRole = (decoded.roles[0] as UserRole) || null;
             
         } catch (error) {
-            // If token is malformed or mangled, clear cookies and redirect
+            console.warn("[MIDDLEWARE_AUTH_ERROR]:", error);
             const response = NextResponse.redirect(new URL('/login', request.url));
             response.cookies.delete("accessToken");
             response.cookies.delete("refreshToken");
@@ -43,12 +50,12 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL(getDefaultDashboardRoute(userRole as UserRole), request.url));
     }
 
-    // Rule 3: Public route access (no interference)
+    // Rule 3: Public route access
     if (routeOwner === null && !isAuth) {
         return NextResponse.next();
     }
 
-    // Rule 4: Unauthenticated user accesses ANY protected route -> Send to login
+    // Rule 4: Unauthenticated user accesses ANY protected route
     if (!accessToken && routeOwner !== null) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("redirect", pathname);
@@ -60,10 +67,9 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Rule 6: User accesses a strict role-based route (e.g., /dashboard/admin)
+    // Rule 6: User accesses a strict role-based route
     if (routeOwner === "ADMIN" || routeOwner === "MENTOR" || routeOwner === "MENTEE") {
         if (userRole !== routeOwner) {
-            // Role mismatch -> Security Bounce to their rightful dashboard
             return NextResponse.redirect(new URL(getDefaultDashboardRoute(userRole as UserRole), request.url));
         }
     }

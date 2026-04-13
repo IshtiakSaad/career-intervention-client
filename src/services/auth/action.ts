@@ -3,8 +3,14 @@
 import { cookies } from "next/headers";
 import { parse } from "cookie";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 import { registerValidationSchema, loginValidationSchema } from "./auth.validation";
 import { TActionState } from "./auth.types";
+import { ROLE_ROUTES, UserRole } from "@/constants/routes";
+import { deleteCookie } from "@/lib/cookie-utils";
+
+import { validateWithSchema } from "@/lib/validation";
 
 /**
  * Registration Action: Handles new user account creation.
@@ -13,19 +19,17 @@ export async function registerUserAction(
     _prevState: TActionState,
     formData: FormData
 ): Promise<TActionState> {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = registerValidationSchema.safeParse(rawData);
+    const validated = validateWithSchema(formData, registerValidationSchema);
 
-    if (!validatedFields.success) {
-        return {
-            success: false,
-            message: "Validation failed. Please correct the highlighted errors.",
-            errors: validatedFields.error.flatten().fieldErrors,
-        };
+    if (!validated.success) {
+        return validated.state;
     }
 
+    const validatedData = validated.data;
+
+
     try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/v1/register`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/users/register`;
         const response = await fetch(apiUrl, {
             method: "POST",
             body: formData,
@@ -44,14 +48,24 @@ export async function registerUserAction(
             };
         }
 
-        revalidatePath("/");
+        // ATOMIC LOGIN: Chaining the login call immediately after successful registration
+        const loginState = await loginUserAction(_prevState, formData);
         
-        // -----------------------------------------------------
-        // AUTOMATIC LOGIN AFTER REGISTRATION
-        // -----------------------------------------------------
-        return await loginUserAction(_prevState, formData);
+        // If login failed for some reason after registration succeeded
+        if (!loginState?.success) {
+            return {
+                success: false,
+                message: "Registration successful, but automatic login failed. Please sign in manually.",
+            };
+        }
+
+        // Success is handled by redirect inside loginUserAction
+        return loginState;
 
     } catch (error) {
+        if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+            throw error; // Let Next.js handle the redirect from loginUserAction
+        }
         console.error("[REGISTER_ACTION_ERROR]:", error);
         return {
             success: false,
@@ -67,15 +81,10 @@ export async function loginUserAction(
     _prevState: TActionState,
     formData: FormData
 ): Promise<TActionState> {
-    const rawData = Object.fromEntries(formData.entries());
-    const validatedFields = loginValidationSchema.safeParse(rawData);
+    const validated = validateWithSchema(formData, loginValidationSchema);
 
-    if (!validatedFields.success) {
-        return {
-            success: false,
-            message: "Validation failed. Please correct the highlighted errors.",
-            errors: validatedFields.error.flatten().fieldErrors,
-        };
+    if (!validated.success) {
+        return validated.state;
     }
 
     try {
@@ -83,7 +92,8 @@ export async function loginUserAction(
         
         const response = await fetch(apiUrl, {
             method: "POST",
-            body: JSON.stringify(validatedFields.data),
+            body: JSON.stringify(validated.data),
+
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -104,10 +114,19 @@ export async function loginUserAction(
         // NEXT.JS BACKEND COOKIE STORAGE 
         // -----------------------------------------------------
         const cookieStore = await cookies();
+        let userRole: UserRole = "MENTEE";
 
         // 1. Grab the Access Token from JSON Data
         const accessToken = result.data?.token || result.data?.accessToken;
         if (accessToken) {
+            // Decode role from token for redirection
+            try {
+                const decoded: any = jwtDecode(accessToken);
+                userRole = (decoded.roles?.[0] as UserRole) || "MENTEE";
+            } catch (e) {
+                console.error("[TOKEN_DECODE_ERROR]:", e);
+            }
+
             cookieStore.set("accessToken", accessToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
@@ -127,8 +146,8 @@ export async function loginUserAction(
                     cookieStore.set("refreshToken", parsedCookie['refreshToken'], {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === "production",
-                        sameSite: "lax", // Keep SameSite strict or lax for security
-                        path: "/", // Ensure it covers the whole site (or /api for stricter security)
+                        sameSite: "lax",
+                        path: "/", // Scope to /auth/refresh if backend supports it
                         maxAge: 60 * 60 * 24 * 7, // 7 Days
                     });
                 }
@@ -137,13 +156,14 @@ export async function loginUserAction(
 
         revalidatePath("/");
         
-        return {
-            success: true,
-            message: "Success! Redirecting to your dashboard...",
-            data: result.data,
-        };
+        // ELIMINATE Cookie Commit Race Condition: 
+        // Use Server-side redirect instead of returning state for success.
+        redirect(ROLE_ROUTES[userRole] || "/dashboard");
 
     } catch (error) {
+        if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+            throw error; // Let Next.js handle the redirect
+        }
         console.error("[LOGIN_ACTION_ERROR]:", error);
         return {
             success: false,
@@ -151,4 +171,35 @@ export async function loginUserAction(
         };
     }
 }
+/**
+ * Logout Action: Invalidates session on backend and clears browser cookies.
+ */
+export async function logoutUserAction() {
+    const cookieStore = await cookies();
+    const refreshToken = cookieStore.get("refreshToken")?.value;
 
+    try {
+        // 1. BACKEND SESSION INVALIDATION
+        if (refreshToken) {
+            await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/logout`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
+        }
+    } catch (error) {
+        // Log the failure for security auditing, but continue to clear local session
+        console.error("[LOGOUT_BACKEND_REVOCATION_FAILED]:", error);
+    } finally {
+        // 2. FORCEFUL COOKIE CLEANUP
+        // Even if backend fails, we must ensure the user is logged out locally
+        await deleteCookie("accessToken");
+        await deleteCookie("refreshToken");
+
+        revalidatePath("/");
+        redirect("/login");
+    }
+}

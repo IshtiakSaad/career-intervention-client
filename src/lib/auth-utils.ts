@@ -1,11 +1,12 @@
-export type UserRole = "ADMIN" | "MENTOR" | "MENTEE";
+import { UserRole, ROLE_ROUTES, AUTH_ROUTES } from "@/constants/routes";
+export type { UserRole };
 
 export type RouteConfig = {
     exact: string[],
     patterns: RegExp[],
 }
 
-export const authRoutes = ["/login", "/register", "/forget-password", "/reset-password"];
+export const authRoutes = AUTH_ROUTES;
 
 // Routes accessible by any logged-in user
 export const commonProtectedRoutes: RouteConfig = {
@@ -15,19 +16,19 @@ export const commonProtectedRoutes: RouteConfig = {
 
 // Routes accessible strictly by MENTORs
 export const mentorProtectedRoutes: RouteConfig = {
-    patterns: [/^\/dashboard\/mentor/],
+    patterns: [/^\/mentor\/dashboard/],
     exact: [], 
 }
 
 // Routes accessible strictly by ADMINs
 export const adminProtectedRoutes: RouteConfig = {
-    patterns: [/^\/dashboard\/admin/], 
+    patterns: [/^\/admin\/dashboard/], 
     exact: [], 
 }
 
 // Routes accessible strictly by MENTEEs
 export const menteeProtectedRoutes: RouteConfig = {
-    patterns: [/^\/dashboard\/mentee/, /^\/dashboard$/], // Assuming /dashboard is the base mentee layout
+    patterns: [/^\/dashboard/], // Assuming /dashboard is the base mentee layout
     exact: [], 
 }
 
@@ -52,10 +53,7 @@ export const getRouteOwner = (pathname: string): UserRole | "COMMON" | null => {
 }
 
 export const getDefaultDashboardRoute = (role: UserRole): string => {
-    if (role === "ADMIN") return "/dashboard/admin";
-    if (role === "MENTOR") return "/dashboard/mentor";
-    if (role === "MENTEE") return "/dashboard/mentee";
-    return "/";
+    return ROLE_ROUTES[role] || "/";
 }
 
 export const isValidRedirectForRole = (redirectPath: string, role: UserRole): boolean => {

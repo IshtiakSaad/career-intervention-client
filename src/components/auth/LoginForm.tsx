@@ -1,19 +1,44 @@
 "use client";
 
-import React, { useActionState } from "react";
+import React, { useActionState, useEffect } from "react";
+import { toast } from "sonner";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Mail, Lock, Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { loginUserAction } from "@/services/auth";
+import { FieldError } from "@/components/shared/forms/FieldError";
 
 const LoginForm = () => {
     const [state, formAction, isPending] = useActionState(loginUserAction, null);
 
+    useEffect(() => {
+        if (!state) return;
+        if (state.success) {
+            toast.success(state.message || "Signing in...", { id: "auth" });
+        } else {
+            toast.error(state.message || "Failed to sign in.", { id: "auth" });
+        }
+        
+        // Cleanup function: If we redirect away, ensure the loader isn't stuck natively.
+        return () => { toast.dismiss("auth"); };
+    }, [state]);
+
+    // Cleanup on generic unmount as well (when redirecting)
+    useEffect(() => {
+        return () => { toast.dismiss("auth"); };
+    }, []);
+
+
     return (
         <div className="w-full">
-            <form action={formAction}>
+            <form action={(formData) => {
+                toast.loading("Verifying credentials...", { id: "auth" });
+                formAction(formData);
+            }}>
+
                 <div className="flex flex-col gap-5">
                     <div className="grid gap-2 text-left">
                         <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
@@ -28,9 +53,7 @@ const LoginForm = () => {
                             required
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                         />
-                        {state?.errors?.email && (
-                            <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.email[0]}</p>
-                        )}
+                        <FieldError errors={state?.errors} name="email" />
                     </div>
 
                     <div className="grid gap-2 text-left">
@@ -57,9 +80,7 @@ const LoginForm = () => {
                             placeholder="••••••••"
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                         />
-                        {state?.errors?.password && (
-                            <p className="text-[10px] text-destructive uppercase tracking-tighter font-bold">{state.errors.password[0]}</p>
-                        )}
+                        <FieldError errors={state?.errors} name="password" />
                     </div>
 
                     {/* Feedback Messages */}
