@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -12,32 +12,34 @@ import { loginUserAction } from "@/services/auth";
 import { FieldError } from "@/components/shared/forms/FieldError";
 
 const LoginForm = () => {
+    const router = useRouter();
     const [state, formAction, isPending] = useActionState(loginUserAction, null);
 
     useEffect(() => {
         if (!state) return;
         if (state.success) {
             toast.success(state.message || "Signing in...", { id: "auth" });
+            if (state.redirectTo) {
+                router.push(state.redirectTo);
+            }
         } else {
             toast.error(state.message || "Failed to sign in.", { id: "auth" });
         }
-        
-        // Cleanup function: If we redirect away, ensure the loader isn't stuck natively.
-        return () => { toast.dismiss("auth"); };
-    }, [state]);
 
-    // Cleanup on generic unmount as well (when redirecting)
-    useEffect(() => {
-        return () => { toast.dismiss("auth"); };
-    }, []);
+        return () => {
+            toast.dismiss("auth");
+        };
+    }, [state, router]);
+
+    const handleSubmit = (formData: FormData) => {
+        toast.loading("Verifying credentials...", { id: "auth" });
+        formAction(formData);
+    };
 
 
     return (
         <div className="w-full">
-            <form action={(formData) => {
-                toast.loading("Verifying credentials...", { id: "auth" });
-                formAction(formData);
-            }}>
+            <form action={handleSubmit}>
 
                 <div className="flex flex-col gap-5">
                     <div className="grid gap-2 text-left">

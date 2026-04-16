@@ -11,6 +11,7 @@ interface CIModalProps {
     description?: string;
     children: React.ReactNode;
     className?: string;
+    size?: "md" | "lg" | "xl"; // md: lg (standard), lg: 2xl, xl: 4xl
 }
 
 /**
@@ -23,8 +24,15 @@ export const CIModal = ({
     title,
     description,
     children,
-    className
+    className,
+    size = "md"
 }: CIModalProps) => {
+    
+    const sizeClasses = {
+        md: "max-w-lg",
+        lg: "max-w-2xl",
+        xl: "max-w-4xl"
+    };
     
     // Close on ESC
     useEffect(() => {
@@ -54,7 +62,8 @@ export const CIModal = ({
             {/* Modal Content */}
             <div 
                 className={cn(
-                    "relative w-full max-w-lg bg-brand-obsidian/90 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-300",
+                    "relative w-full bg-brand-obsidian/90 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-300",
+                    sizeClasses[size],
                     className
                 )}
             >

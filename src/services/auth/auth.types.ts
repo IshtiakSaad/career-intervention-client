@@ -11,9 +11,20 @@ export const JWTPayloadSchema = z.object({
 
 export type TJWTPayload = z.infer<typeof JWTPayloadSchema>;
 
+export type TAuthTokens = {
+    accessToken: string;
+    refreshToken: string;
+};
+
+export type TAuthResult =
+    | { success: true; data: TAuthTokens & { user?: any } }
+    | { success: false; message: string; errors?: Record<string, string[] | undefined> };
+
 export type TActionState = {
     success: boolean;
     message?: string;
     errors?: Record<string, string[] | undefined>;
+    fields?: Record<string, any>;
     data?: any;
+    redirectTo?: string;
 } | null;

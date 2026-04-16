@@ -13,10 +13,10 @@ interface LogoutButtonProps {
     showLabel?: boolean;
 }
 
-const LogoutButton = ({ 
-    className, 
-    variant = "ghost", 
-    showLabel = true 
+const LogoutButton = ({
+    className,
+    variant = "ghost",
+    showLabel = true
 }: LogoutButtonProps) => {
     const [isPending, startTransition] = useTransition();
 

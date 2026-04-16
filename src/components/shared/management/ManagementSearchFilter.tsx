@@ -5,12 +5,19 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 interface ManagementSearchFilterProps {
     placeholder?: string;
     delay?: number;
+    className?: string;
 }
 
-export const ManagementSearchFilter = ({ placeholder = "Search...", delay = 300 }: ManagementSearchFilterProps) => {
+export const ManagementSearchFilter = ({ 
+    placeholder = "Search...", 
+    delay = 300,
+    className
+}: ManagementSearchFilterProps) => {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -38,7 +45,7 @@ export const ManagementSearchFilter = ({ placeholder = "Search...", delay = 300 
     }, [searchTerm, pathname, router, searchParams, delay]);
 
     return (
-        <div className="relative w-full md:w-[300px]">
+        <div className={cn("relative w-full md:w-[300px]", className)}>
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
                 type="text"

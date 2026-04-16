@@ -5,12 +5,13 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CIModal } from "@/components/shared/CIModal";
 import { AddMentorForm } from "./AddMentorForm";
+import { TSpecialty } from "@/services/specialty";
 
 /**
  * AddMentorButton (Client Component)
  * Manages the modal state for creating a new mentor since the main page is a Server Component.
  */
-export const AddMentorButton = () => {
+export const AddMentorButton = ({ specialties }: { specialties: TSpecialty[] }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -27,10 +28,11 @@ export const AddMentorButton = () => {
             <CIModal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
+                size="xl"
                 title="Create Mentor Account"
                 description="Initialize a new professional mentor account with secure credentials."
             >
-                <AddMentorForm onSuccess={() => setIsOpen(false)} />
+                <AddMentorForm specialties={specialties} onSuccess={() => setIsOpen(false)} />
             </CIModal>
         </>
     );

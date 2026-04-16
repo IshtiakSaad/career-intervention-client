@@ -12,24 +12,35 @@ import { z } from "zod";
  * Zod Schema for Mentor Profile Updates
  */
 const mentorUpdateSchema = z.object({
-    designation: z.string().optional(),
+    designation: z.string().min(2, "Designation must be a valid title").optional(),
     currentWorkingPlace: z.string().optional(),
-    bio: z.string().optional(),
-    experience: z.coerce.number().optional(),
+    bio: z.string().min(50, "Bio must be at least 50 characters for a professional profile").optional(),
+    experience: z.coerce.number().min(0, "Experience cannot be negative").optional(),
+    headline: z.string().min(10, "Headline must be at least 10 characters").max(100).optional(),
+    location: z.string().optional(),
+    linkedinUrl: z.string().url("Invalid LinkedIn URL format").optional().or(z.literal("")),
+    portfolioUrl: z.string().url("Invalid Portfolio URL format").optional().or(z.literal("")),
+    specialties: z.array(z.string()).optional(),
 });
 
 /**
  * Zod Schema for Mentor Creation (By Admin)
  */
 const mentorCreateSchema = z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    name: z.string().min(2, "Full legal name is required"),
+    email: z.string().email("Invalid system identifier (email)"),
+    phoneNumber: z.string().min(6, "Valid phone line is required"),
+    password: z.string().min(6, "Access key must be at least 6 characters"),
     gender: z.enum(["MALE", "FEMALE", "OTHERS"]),
-    designation: z.string().optional(),
-    currentWorkingPlace: z.string().optional(),
-    experience: z.coerce.number().optional().default(0),
-    bio: z.string().optional(),
+    designation: z.string().min(2, "Designation is required for profile indexing"),
+    experience: z.coerce.number().min(0, "Experience cannot be negative").default(0),
+    currentWorkingPlace: z.string().min(2, "Current organization is required"),
+    headline: z.string().min(10, "Headline must be at least 10 characters").max(100),
+    location: z.string().min(2, "Operations base (location) is required"),
+    linkedinUrl: z.string().url("Invalid LinkedIn URL format").optional().or(z.literal("")),
+    portfolioUrl: z.string().url("Invalid Portfolio URL format").optional().or(z.literal("")),
+    bio: z.string().min(50, "Comprehensive bio (min 50 chars) is required for verification"),
+    specialties: z.array(z.string()).min(1, "At least one core expertise is required"),
 });
 
 /**
@@ -58,20 +69,39 @@ export async function fetchMentors(paramsStr: string): Promise<MentorManagementR
 }
 
 /**
- * Creates a new Mentor (User + Profile)
+ * Creates a new Mentor (User + Profile + Specialties)
  */
 export async function createMentorAction(
     _prevState: TActionState,
     formData: FormData
 ): Promise<TActionState> {
-    const validated = validateWithSchema(formData, mentorCreateSchema);
-    if (!validated.success) return validated.state;
+    // 1. Manually extract specialties as an array (standard fromEntries squashes them)
+    const rawData = Object.fromEntries(formData.entries());
+    const specialties = formData.getAll("specialties");
+    
+    // 2. Prepare data for validation
+    const dataToValidate = {
+        ...rawData,
+        specialties: specialties.length > 0 ? specialties : [],
+    };
+
+    // 3. Perform manual validation to handle array fields correctly
+    const validatedFields = mentorCreateSchema.safeParse(dataToValidate);
+
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            message: "Validation failed. Please check the form.",
+            errors: validatedFields.error.flatten().fieldErrors,
+            fields: dataToValidate,
+        };
+    }
 
     try {
         const res = await serverFetch.post("/users", {
             body: JSON.stringify({
-                ...validated.data,
-                role: "MENTOR", // Enforce role at the service layer
+                ...validatedFields.data,
+                role: "MENTOR",
             }),
         });
 
@@ -138,8 +168,25 @@ export async function updateMentorAction(
     _prevState: TActionState,
     formData: FormData
 ): Promise<TActionState> {
-    const validated = validateWithSchema(formData, mentorUpdateSchema);
-    if (!validated.success) return validated.state;
+    // 1. Extract specialties as an array to avoid flattening
+    const rawData = Object.fromEntries(formData.entries());
+    const specialties = formData.getAll("specialties");
+
+    const dataToValidate = {
+        ...rawData,
+        specialties: specialties.length > 0 ? specialties : undefined,
+    };
+
+    const validated = mentorUpdateSchema.safeParse(dataToValidate);
+    
+    if (!validated.success) {
+        return {
+            success: false,
+            message: "Validation failed. Please check the form.",
+            errors: validated.error.flatten().fieldErrors,
+            fields: dataToValidate,
+        };
+    }
 
     try {
         const res = await serverFetch.patch(`/mentors/${id}`, {

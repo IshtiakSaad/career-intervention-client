@@ -5,7 +5,10 @@ import { ManagementTableSkeleton } from "@/components/shared/management/Manageme
 import { MentorTable } from "./_components/MentorTable";
 import { fetchMentors } from "@/services/mentor";
 import { formatFilterParams } from "@/lib/query-utils";
+import { fetchSpecialties } from "@/services/specialty";
 import { AddMentorButton } from "./_components/AddMentorButton";
+import { SpecialtyFilter } from "./_components/SpecialtyFilter";
+import { MentorTableSkeleton } from "./_components/MentorTableSkeleton";
 
 export const metadata = {
     title: "Mentor Management | Admin Dashboard",
@@ -15,9 +18,9 @@ type PageProps = {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-async function MentorTableData({ paramsStr }: { paramsStr: string }) {
+async function MentorTableData({ paramsStr, specialties }: { paramsStr: string, specialties: any[] }) {
     const { data, meta } = await fetchMentors(paramsStr);
-    return <MentorTable data={data} meta={meta} />;
+    return <MentorTable data={data} meta={meta} specialties={specialties} />;
 }
 
 export default async function MentorManagementPage({ searchParams }: PageProps) {
@@ -27,11 +30,21 @@ export default async function MentorManagementPage({ searchParams }: PageProps) 
     if (rawParams) {
         Object.keys(rawParams).forEach(key => {
             const val = rawParams[key];
-            if (typeof val === 'string') searchParamsObj.set(key, val);
+            if (Array.isArray(val)) {
+                val.forEach(v => {
+                    if (v) searchParamsObj.append(key, v);
+                });
+            } else if (typeof val === 'string' && val) {
+                searchParamsObj.set(key, val);
+            }
         });
     }
 
     const paramsStr = formatFilterParams(searchParamsObj);
+
+    // Fetch specialties for the Add Mentor form
+    const specialtiesRes = await fetchSpecialties("");
+    const specialties = specialtiesRes.data || [];
 
     return (
         <div className="flex flex-col h-full gap-6">
@@ -40,14 +53,20 @@ export default async function MentorManagementPage({ searchParams }: PageProps) 
                 description="Monitor Mentor performance, verify their credentials, and oversee their profiles."
             />
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card/20 p-4 rounded-xl border border-border/50">
-                <ManagementSearchFilter placeholder="Search Mentors..." />
-                <AddMentorButton />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
+                    <ManagementSearchFilter
+                        placeholder="SEARCH MENTOR ARCHIVES..."
+                        className="max-w-md w-full"
+                    />
+                    <SpecialtyFilter specialties={specialties} />
+                </div>
+                <AddMentorButton specialties={specialties} />
             </div>
 
             <div className="flex-1">
-                <Suspense fallback={<ManagementTableSkeleton columnCount={5} rowCount={5} />}>
-                    <MentorTableData paramsStr={paramsStr} />
+                <Suspense key={paramsStr} fallback={<MentorTableSkeleton />}>
+                    <MentorTableData paramsStr={paramsStr} specialties={specialties} />
                 </Suspense>
             </div>
         </div>

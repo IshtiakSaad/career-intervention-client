@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useActionState, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ import { registerUserAction } from "@/services/auth";
 import { FieldError } from "@/components/shared/forms/FieldError";
 
 const RegisterForm = () => {
+    const router = useRouter();
     const [state, formAction, isPending] = useActionState(registerUserAction, null);
     const [gender, setGender] = useState<string>("");
 
@@ -25,22 +27,29 @@ const RegisterForm = () => {
         if (!state) return;
         if (state.success) {
             toast.success(state.message || "Registration successful!", { id: "auth" });
+            if (state.redirectTo) {
+                router.push(state.redirectTo);
+            }
         } else {
             toast.error(state.message || "Registration failed. Please check the form.", { id: "auth" });
         }
-    }, [state]);
+    }, [state, router]);
 
-    // Cleanup on generic unmount (when redirecting)
+    const handleSubmit = (formData: FormData) => {
+        toast.loading("Creating your profile...", { id: "auth" });
+        formAction(formData);
+    };
+
+    // Cleanup on generic unmount
     useEffect(() => {
-        return () => { toast.dismiss("auth"); };
+        return () => {
+            toast.dismiss("auth");
+        };
     }, []);
 
     return (
         <div className="w-full">
-            <form action={(formData) => {
-                toast.loading("Creating your profile...", { id: "auth" });
-                formAction(formData);
-            }}>
+            <form action={handleSubmit}>
                 <div className="flex flex-col gap-5">
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
