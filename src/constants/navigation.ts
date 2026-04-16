@@ -119,16 +119,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
  * Returns the correct profile href for a given role.
  */
 export function getProfileHref(role: UserRole): string {
-    switch (role) {
-        case "ADMIN":
-            return "/admin/dashboard/my-profile";
-        case "MENTOR":
-            return "/mentor/dashboard/my-profile";
-        case "MENTEE":
-            return "/dashboard/my-profile";
-        default:
-            return "/";
-    }
+    return "/my-profile";
 }
 
 /**

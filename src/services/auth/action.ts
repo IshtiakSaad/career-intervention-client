@@ -12,50 +12,53 @@ import * as AuthService from "./service";
 import * as AuthSession from "./session";
 
 /**
- * ACTIONS LAYER: Next.js Boundary / Orchestration.
- * Flow: Validation -> Service Call -> Session Update -> Return Result.
+ * ACTIONS LAYER: Next.js Boundary / Orchestration (v10.0)
+ * Flow: Validation -> Service Call -> Session Update -> Redirect/Return.
+ * Enforces server-side authority for session lifecycles.
  */
+
+/**
+ * Guard utility for protected routes to ensure identity freshness.
+ */
+export async function validateUserSession(): Promise<string | never> {
+    const token = await AuthSession.getAccessToken();
+    if (!token) {
+        redirect("/login");
+    }
+    return token;
+}
 
 export async function registerUserAction(
     _prevState: TActionState,
     formData: FormData
-): Promise<TActionState> {
-    // 1. Validation
+): Promise<TActionState | never> {
     const validated = validateWithSchema(formData, registerValidationSchema);
     if (!validated.success) return validated.state;
 
-    // 2. Service Call
     const result = await AuthService.registerUser(validated.data);
     if (!result.success) {
         return { success: false, message: result.message, errors: result.errors };
     }
 
-    // 3. Orchestration Logic
-    return {
-        success: true,
-        message: "Registration successful! Tracking your potential. Please sign in.",
-        redirectTo: "/login",
-    };
+    // Server-side authority: redirect to login after successful registration
+    redirect("/login");
 }
 
 export async function loginUserAction(
     _prevState: TActionState,
     formData: FormData
-): Promise<TActionState> {
-    // 1. Validation
+): Promise<TActionState | never> {
     const validated = validateWithSchema(formData, loginValidationSchema);
     if (!validated.success) return validated.state;
 
-    // 2. Service Call
     const result = await AuthService.loginUser(validated.data);
     if (!result.success) {
         return { success: false, message: result.message, errors: result.errors };
     }
 
-    // 3. Session Layer Update
+    // Update Session Layer (Hardened Cookies)
     await AuthSession.setAuthTokens(result.data);
 
-    // 4. Orchestration / Routing Logic
     let userRole: UserRole = "MENTEE";
     try {
         const decoded = jwtDecode<TJWTPayload>(result.data.accessToken);
@@ -65,25 +68,21 @@ export async function loginUserAction(
     }
 
     revalidatePath("/");
-
-    return {
-        success: true,
-        message: "Signed in successfully!",
-        redirectTo: ROLE_ROUTES[userRole] || "/dashboard",
-    };
+    
+    // Deterministic server-side navigation
+    redirect(ROLE_ROUTES[userRole] || "/dashboard");
 }
 
-export async function logoutUserAction() {
-    // 1. Session Retrieval
+export async function logoutUserAction(): Promise<never> {
     const tokens = await AuthSession.getAuthTokens();
 
     try {
-        // 2. Service Call (Revoke on backend)
+        // Revoke on backend
         if (tokens?.refreshToken) {
             await AuthService.logoutUser(tokens.refreshToken);
         }
     } finally {
-        // 3. Clear Local Session
+        // Fail-Hard: Always clear local session even if backend revocation fails
         await AuthSession.clearAuthTokens();
         
         revalidatePath("/");

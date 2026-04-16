@@ -35,8 +35,7 @@ export async function loginUser(credentials: TLoginInput): Promise<TAuthResult> 
         const accessToken = result.data?.token || result.data?.accessToken;
         
         // Refresh token might be in headers (Set-Cookie)
-        const setCookieHeaders = response.headers.getSetCookie?.() || 
-            [response.headers.get("set-cookie")].filter(Boolean) as string[];
+        const setCookieHeaders = response.headers.getSetCookie?.() || [response.headers.get("set-cookie")].filter(Boolean) as string[];
         
         let refreshToken = "";
         if (setCookieHeaders.length > 0) {
@@ -116,5 +115,48 @@ export async function logoutUser(refreshToken: string): Promise<boolean> {
     } catch (error) {
         console.error("[AUTH_SERVICE_LOGOUT_ERROR]:", error);
         return false;
+    }
+}
+
+/**
+ * Refreshes the access token using a valid refreshToken.
+ * Standardizes token extraction and validation from the response.
+ */
+export async function refreshAccessToken(refreshToken: string): Promise<TAuthResult> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            console.error("[AUTH_SERVICE_REFRESH_FAILED]: Backend returned", response.status);
+            return {
+                success: false,
+                message: result.message || "Refresh failed.",
+            };
+        }
+
+        // Support token rotation: take new refreshToken if backend provided it
+        const newAccessToken = result.data?.accessToken;
+        const newRefreshToken = result.data?.refreshToken || refreshToken;
+
+        if (!newAccessToken) {
+            return { success: false, message: "New access token not found in refresh response." };
+        }
+
+        return {
+            success: true,
+            data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
+        };
+    } catch (error) {
+        console.error("[AUTH_SERVICE_REFRESH_ERROR]:", error);
+        return { success: false, message: "Communication error during token refresh." };
     }
 }

@@ -10,6 +10,11 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { revalidatePath } from "next/cache";
 import { serverFetch } from "@/lib/serverFetch";
 import { formatDate } from "@/lib/utils";
+import { ManagementPagination, PaginationMeta } from "@/components/shared/management/ManagementPagination";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { fetchAdmins } from "@/services/admin";
+
 
 export const metadata = {
     title: "Administrators Management",
@@ -27,12 +32,6 @@ async function refreshAction() {
     revalidatePath("/admin/dashboard/admins-management");
 }
 
-import { ManagementPagination, PaginationMeta } from "@/components/shared/management/ManagementPagination";
-import Link from "next/link";
-
-import { buttonVariants } from "@/components/ui/button";
-
-import { fetchAdmins } from "@/services/admin";
 
 // ─── DATA COMPONENT (Server-Side) ───
 async function AdminTableData({ paramsStr }: { paramsStr: string }) {
@@ -58,10 +57,10 @@ async function AdminTableData({ paramsStr }: { paramsStr: string }) {
                         <TableCell>
                             <div className="flex items-center gap-3">
                                 {admin.user?.profileImageUrl ? (
-                                    <img 
-                                        src={admin.user.profileImageUrl} 
-                                        className="size-8 rounded-full border border-border object-cover" 
-                                        alt="" 
+                                    <img
+                                        src={admin.user.profileImageUrl}
+                                        className="size-8 rounded-full border border-border object-cover"
+                                        alt=""
                                     />
                                 ) : (
                                     <div className="size-8 rounded-full bg-brand-acid/10 border border-brand-acid/30 flex items-center justify-center text-[10px] font-bold text-brand-acid">
@@ -78,16 +77,15 @@ async function AdminTableData({ paramsStr }: { paramsStr: string }) {
                             {formatDate(admin.createdAt)}
                         </TableCell>
                         <TableCell>
-                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest ${
-                                admin.activeStatus 
-                                ? "bg-green-500/10 text-green-500 border border-green-500/20" 
+                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold tracking-widest ${admin.activeStatus
+                                ? "bg-green-500/10 text-green-500 border border-green-500/20"
                                 : "bg-destructive/10 text-destructive border border-destructive/20"
-                            }`}>
+                                }`}>
                                 {admin.activeStatus ? "Active" : "Inactive"}
                             </span>
                         </TableCell>
                         <TableCell className="text-right">
-                            <Link 
+                            <Link
                                 href={`/admin/dashboard/admins-management/${admin.id}/edit`}
                                 className={buttonVariants({ variant: "ghost", size: "sm" }) + " text-[10px] tracking-widest uppercase font-bold hover:text-brand-acid"}
                             >
@@ -106,7 +104,7 @@ async function AdminTableData({ paramsStr }: { paramsStr: string }) {
 export default async function AdminsManagementPage({ searchParams }: PageProps) {
     const rawParams = await searchParams;
     const params = new URLSearchParams();
-    
+
     if (rawParams) {
         Object.keys(rawParams).forEach(key => {
             const val = rawParams[key];
@@ -116,8 +114,8 @@ export default async function AdminsManagementPage({ searchParams }: PageProps) 
 
     return (
         <div className="flex flex-col h-full gap-6">
-            <ManagementHeader 
-                title="Administrators" 
+            <ManagementHeader
+                title="Administrators"
                 description="Manage platform administrators and their permissions."
             >
                 <form action={refreshAction}>
@@ -125,7 +123,7 @@ export default async function AdminsManagementPage({ searchParams }: PageProps) 
                         <RefreshCw className="size-4 text-muted-foreground" />
                     </Button>
                 </form>
-                <Link 
+                <Link
                     href="/admin/dashboard/admins-management/new"
                     className={buttonVariants({ variant: "default", size: "default" }) + " bg-brand-acid text-brand-obsidian hover:bg-brand-acid/90 font-bold uppercase tracking-widest text-xs h-10 px-4"}
                 >
@@ -136,7 +134,7 @@ export default async function AdminsManagementPage({ searchParams }: PageProps) 
 
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card/20 p-4 rounded-xl border border-border/50">
                 <ManagementSearchFilter placeholder="Search by name or email..." />
-                <ManagementSelectFilter 
+                <ManagementSelectFilter
                     paramKey="activeStatus"
                     placeholder="Filter by status"
                     options={[
