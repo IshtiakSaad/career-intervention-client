@@ -6,6 +6,24 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: ".",
   },
+  images: {
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+        port: "",
+        pathname: "/7.x/**",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

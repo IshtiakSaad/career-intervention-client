@@ -64,6 +64,7 @@ export async function loginUser(credentials: TLoginInput): Promise<TAuthResult> 
     }
 }
 
+
 export async function registerUser(input: TRegisterInput): Promise<TAuthResult> {
     try {
         const response = await fetch(`${API_BASE_URL}/users/register`, {
@@ -123,6 +124,9 @@ export async function logoutUser(refreshToken: string): Promise<boolean> {
  * Standardizes token extraction and validation from the response.
  */
 export async function refreshAccessToken(refreshToken: string): Promise<TAuthResult> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for refresh
+
     try {
         const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
             method: "POST",
@@ -131,12 +135,14 @@ export async function refreshAccessToken(refreshToken: string): Promise<TAuthRes
                 "Accept": "application/json",
             },
             body: JSON.stringify({ refreshToken }),
+            signal: controller.signal,
         });
 
         const result = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            console.error("[AUTH_SERVICE_REFRESH_FAILED]: Backend returned", response.status);
+            // Log as warning - session expiry is an expected lifecycle event, not a system crash
+            console.warn("[AUTH_SERVICE]: Token refresh rejected by backend (401/403). Session may have expired.");
             return {
                 success: false,
                 message: result.message || "Refresh failed.",
@@ -156,7 +162,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<TAuthRes
             data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
         };
     } catch (error) {
-        console.error("[AUTH_SERVICE_REFRESH_ERROR]:", error);
+        console.warn("[AUTH_SERVICE]: Communication error during token refresh. Local network or backend timeout.");
         return { success: false, message: "Communication error during token refresh." };
     }
 }

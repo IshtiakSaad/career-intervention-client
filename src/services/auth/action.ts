@@ -12,7 +12,7 @@ import * as AuthService from "./service";
 import * as AuthSession from "./session";
 
 /**
- * ACTIONS LAYER: Next.js Boundary / Orchestration (v10.0)
+ * ACTIONS LAYER: Next.js Boundary / Orchestration
  * Flow: Validation -> Service Call -> Session Update -> Redirect/Return.
  * Enforces server-side authority for session lifecycles.
  */
@@ -25,7 +25,7 @@ export async function validateUserSession(): Promise<string | never> {
     if (!token) {
         redirect("/login");
     }
-    return token;
+    return token;   
 }
 
 export async function registerUserAction(
@@ -85,7 +85,27 @@ export async function logoutUserAction(): Promise<never> {
         // Fail-Hard: Always clear local session even if backend revocation fails
         await AuthSession.clearAuthTokens();
         
-        revalidatePath("/");
-        redirect("/login");
-    }
+    revalidatePath("/");
+    redirect("/login");
+  }
+}
+
+/**
+ * Retrieves the current authenticated user identity from the session.
+ * Safe to call from both Client and Server components.
+ */
+export async function getCurrentUser() {
+  const token = await AuthSession.getAccessToken();
+  if (!token) return null;
+
+  try {
+    const decoded = jwtDecode<TJWTPayload>(token);
+    return {
+      userId: decoded.id,
+      email: decoded.email,
+      roles: decoded.roles,
+    };
+  } catch (error) {
+    return null;
+  }
 }

@@ -43,19 +43,10 @@ async function getValidAccessToken(options: { forceRefresh?: boolean } = {}): Pr
             const result = await AuthService.refreshAccessToken(refreshToken);
             
             if (!result.success) {
-                console.error({
-                    event: "AUTH_REFRESH",
-                    status: "FAIL",
-                    timestamp: new Date().toISOString(),
-                });
+                // Warning only: Session expiry is normal
+                console.warn(`[AUTH_REFRESH]: Failure [${new Date().toISOString()}] - Session likely ended.`);
                 return null;
             }
-
-            console.log({
-                event: "AUTH_REFRESH",
-                status: "SUCCESS",
-                timestamp: new Date().toISOString(),
-            });
 
             // Update session with NEW tokens (Access + potentially Rotated Refresh)
             await AuthSession.setAuthTokens(result.data);

@@ -1,207 +1,241 @@
-/* eslint-disable no-restricted-imports */
 "use server";
 
 import { serverFetch } from "@/lib/serverFetch";
-import { MentorManagementResponse } from "./mentor.types";
 import { revalidatePath } from "next/cache";
 import { TActionState } from "@/services/auth/auth.types";
 import { validateWithSchema } from "@/lib/validation";
 import { z } from "zod";
+import { MentorManagementResponse } from "./mentor.types";
+import { jwtDecode } from "jwt-decode";
+import { TJWTPayload } from "@/services/auth/auth.types";
+import * as AuthSession from "@/services/auth/session";
 
 /**
- * Zod Schema for Mentor Profile Updates
+ * MENTOR SERVICE ACTIONS (v6.1 - Unified Admin & Discovery)
+ * High-performance orchestration for both public discovery and admin-side provisioning.
  */
-const mentorUpdateSchema = z.object({
-    designation: z.string().min(2, "Designation must be a valid title").optional(),
-    currentWorkingPlace: z.string().optional(),
-    bio: z.string().min(50, "Bio must be at least 50 characters for a professional profile").optional(),
-    experience: z.coerce.number().min(0, "Experience cannot be negative").optional(),
-    headline: z.string().min(10, "Headline must be at least 10 characters").max(100).optional(),
-    location: z.string().optional(),
-    linkedinUrl: z.string().url("Invalid LinkedIn URL format").optional().or(z.literal("")),
-    portfolioUrl: z.string().url("Invalid Portfolio URL format").optional().or(z.literal("")),
-    specialties: z.array(z.string()).optional(),
+
+// ─── VALIDATION SCHEMAS ──────────────────────────────────────────────────────
+
+const createMentorSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email"),
+  phoneNumber: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHERS"]),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  headline: z.string().optional(),
+  designation: z.string().optional(),
+  experience: z.coerce.number().min(0),
+  currentWorkingPlace: z.string().optional(),
+  location: z.string().optional(),
+  linkedinUrl: z.string().url("Invalid LinkedIn URL").optional().or(z.literal("")),
+  portfolioUrl: z.string().url("Invalid Portfolio URL").optional().or(z.literal("")),
+  bio: z.string().optional(),
+  specialties: z.array(z.string()).or(z.string()).optional(),
 });
 
-/**
- * Zod Schema for Mentor Creation (By Admin)
- */
-const mentorCreateSchema = z.object({
-    name: z.string().min(2, "Full legal name is required"),
-    email: z.string().email("Invalid system identifier (email)"),
-    phoneNumber: z.string().min(6, "Valid phone line is required"),
-    password: z.string().min(6, "Access key must be at least 6 characters"),
-    gender: z.enum(["MALE", "FEMALE", "OTHERS"]),
-    designation: z.string().min(2, "Designation is required for profile indexing"),
-    experience: z.coerce.number().min(0, "Experience cannot be negative").default(0),
-    currentWorkingPlace: z.string().min(2, "Current organization is required"),
-    headline: z.string().min(10, "Headline must be at least 10 characters").max(100),
-    location: z.string().min(2, "Operations base (location) is required"),
-    linkedinUrl: z.string().url("Invalid LinkedIn URL format").optional().or(z.literal("")),
-    portfolioUrl: z.string().url("Invalid Portfolio URL format").optional().or(z.literal("")),
-    bio: z.string().min(50, "Comprehensive bio (min 50 chars) is required for verification"),
-    specialties: z.array(z.string()).min(1, "At least one core expertise is required"),
+const updateMentorSchema = z.object({
+  headline: z.string().optional(),
+  designation: z.string().optional(),
+  experience: z.coerce.number().min(0).optional(),
+  currentWorkingPlace: z.string().optional(),
+  location: z.string().optional(),
+  linkedinUrl: z.string().url("Invalid LinkedIn URL").optional().or(z.literal("")),
+  portfolioUrl: z.string().url("Invalid Portfolio URL").optional().or(z.literal("")),
+  bio: z.string().optional(),
+  specialties: z.array(z.string()).or(z.string()).optional(),
 });
 
-/**
- * Fetch all mentors with server-side proxy
- */
+// ─── DISCOVERY ACTIONS (PUBLIC) ──────────────────────────────────────────────
+
+export async function getAllMentors(params: { 
+  searchTerm?: string; 
+  specialties?: string[];
+  page?: number;
+  limit?: number;
+} = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.searchTerm) query.set("searchTerm", params.searchTerm);
+    if (params.specialties?.length) {
+      params.specialties.forEach(s => query.append("specialties", s));
+    }
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+
+    const response = await serverFetch.get(`/mentors?${query.toString()}`, { cache: 'no-store' });
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: result.message || "Failed to fetch mentors" };
+    }
+
+    return { 
+      success: true, 
+      data: result.data, 
+      meta: result.meta 
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || "An unexpected error occurred" };
+  }
+}
+
+export async function getMentorDetails(id: string) {
+  try {
+    const response = await serverFetch.get(`/mentors/${id}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: result.message || "Mentor details not found" };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error: any) {
+    return { success: false, message: "Communication error" };
+  }
+}
+
+export async function getSpecialties() {
+  try {
+    const response = await serverFetch.get("/specialties?limit=100");
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: "Could not fetch categories" };
+    }
+
+    return { success: true, data: result.data };
+  } catch (error: any) {
+    return { success: false, message: "Network error fetching specialties" };
+  }
+}
+
+// ─── ADMIN ACTIONS (PROTECTED) ───────────────────────────────────────────────
+
 export async function fetchMentors(paramsStr: string): Promise<MentorManagementResponse> {
-    try {
-        const res = await serverFetch.get(`/mentors?${paramsStr}`, {
-            cache: "no-store",
-        });
+  try {
+    const res = await serverFetch.get(`/mentors?${paramsStr}`, { cache: "no-store" });
+    if (!res.ok) return { data: [], meta: null };
 
-        if (!res.ok) {
-            console.error("[MENTOR_FETCH_ERROR]: Backend returned", res.status);
-            return { data: [], meta: null };
-        }
-
-        const payload = await res.json();
-        return {
-            data: Array.isArray(payload.data) ? payload.data : [],
-            meta: payload.meta || null,
-        };
-    } catch (error) {
-        console.error("[MENTOR_FETCH_ERROR]:", error);
-        return { data: [], meta: null };
-    }
+    const payload = await res.json();
+    return {
+      data: payload.data || [],
+      meta: payload.meta || null,
+    };
+  } catch (error) {
+    return { data: [], meta: null };
+  }
 }
 
-/**
- * Creates a new Mentor (User + Profile + Specialties)
- */
 export async function createMentorAction(
-    _prevState: TActionState,
-    formData: FormData
+  _prevState: any,
+  formData: FormData
 ): Promise<TActionState> {
-    // 1. Manually extract specialties as an array (standard fromEntries squashes them)
-    const rawData = Object.fromEntries(formData.entries());
-    const specialties = formData.getAll("specialties");
-    
-    // 2. Prepare data for validation
-    const dataToValidate = {
-        ...rawData,
-        specialties: specialties.length > 0 ? specialties : [],
-    };
+  const validated = validateWithSchema(formData, createMentorSchema);
+  if (!validated.success) return validated.state;
 
-    // 3. Perform manual validation to handle array fields correctly
-    const validatedFields = mentorCreateSchema.safeParse(dataToValidate);
+  try {
+    const res = await serverFetch.post("/users/register-mentor", {
+      body: JSON.stringify(validated.data),
+    });
 
-    if (!validatedFields.success) {
-        return {
-            success: false,
-            message: "Validation failed. Please check the form.",
-            errors: validatedFields.error.flatten().fieldErrors,
-            fields: dataToValidate,
-        };
+    const result = await res.json();
+    if (!res.ok) {
+      return { success: false, message: result.message || "Provisioning failed" };
     }
 
-    try {
-        const res = await serverFetch.post("/users", {
-            body: JSON.stringify({
-                ...validatedFields.data,
-                role: "MENTOR",
-            }),
-        });
-
-        const result = await res.json();
-        if (!res.ok) {
-            return { success: false, message: result.message || "Failed to create mentor" };
-        }
-
-        revalidatePath("/admin/dashboard/mentor-management");
-        return { success: true, message: "Mentor account created successfully" };
-    } catch (error) {
-        console.error("[CREATE_MENTOR_ERROR]:", error);
-        return { success: false, message: "External server error" };
-    }
+    revalidatePath("/admin/dashboard/mentor-management");
+    return { success: true, message: "Mentor deployed successfully" };
+  } catch (error) {
+    return { success: false, message: "External server error" };
+  }
 }
 
-/**
- * Toggles the verification badge of a mentor
- */
-export async function verifyMentorAction(id: string, isVerified: boolean): Promise<TActionState> {
-    try {
-        const res = await serverFetch.patch(`/mentors/verify/${id}`, {
-            body: JSON.stringify({ isVerified }),
-        });
-
-        if (!res.ok) {
-             const result = await res.json();
-             return { success: false, message: result.message || "Failed to update verification status" };
-        }
-
-        revalidatePath("/admin/dashboard/mentor-management");
-        return { success: true, message: `Mentor ${isVerified ? 'verified' : 'unverified'} successfully` };
-    } catch (error) {
-        console.error("[VERIFY_MENTOR_ERROR]:", error);
-        return { success: false, message: "External server error" };
-    }
-}
-
-/**
- * Soft deletes a mentor by updating the User record
- */
-export async function deleteMentorAction(id: string): Promise<TActionState> {
-    try {
-        const res = await serverFetch.delete(`/mentors/${id}`);
-        
-        if (!res.ok) {
-            const result = await res.json();
-            return { success: false, message: result.message || "Failed to delete mentor" };
-        }
-
-        revalidatePath("/admin/dashboard/mentor-management");
-        return { success: true, message: "Mentor record removed successfully" };
-    } catch (error) {
-        console.error("[DELETE_MENTOR_ERROR]:", error);
-        return { success: false, message: "External server error" };
-    }
-}
-
-/**
- * Updates mentor profile details
- */
 export async function updateMentorAction(
-    id: string,
-    _prevState: TActionState,
-    formData: FormData
+  id: string,
+  _prevState: any,
+  formData: FormData
 ): Promise<TActionState> {
-    // 1. Extract specialties as an array to avoid flattening
-    const rawData = Object.fromEntries(formData.entries());
-    const specialties = formData.getAll("specialties");
+  const validated = validateWithSchema(formData, updateMentorSchema);
+  if (!validated.success) return validated.state;
 
-    const dataToValidate = {
-        ...rawData,
-        specialties: specialties.length > 0 ? specialties : undefined,
+  try {
+    const res = await serverFetch.patch(`/mentors/${id}`, {
+      body: JSON.stringify(validated.data),
+    });
+
+    const result = await res.json();
+    if (!res.ok) {
+      return { success: false, message: result.message || "Failed to update record" };
+    }
+
+    revalidatePath("/admin/dashboard/mentor-management");
+    return { success: true, message: "Mentor record updated" };
+  } catch (error) {
+    return { success: false, message: "External server error" };
+  }
+}
+
+export async function deleteMentorAction(id: string): Promise<TActionState> {
+  try {
+    const res = await serverFetch.delete(`/mentors/${id}`);
+    const result = await res.json();
+
+    if (!res.ok) {
+      return { success: false, message: result.message || "Decomposition failed" };
+    }
+
+    revalidatePath("/admin/dashboard/mentor-management");
+    return { success: true, message: "Mentor record removed" };
+  } catch (error) {
+    return { success: false, message: "External server error" };
+  }
+}
+
+export async function verifyMentorAction(id: string, isVerified: boolean): Promise<TActionState> {
+  try {
+    const res = await serverFetch.patch(`/mentors/verify/${id}`, {
+      body: JSON.stringify({ isVerified }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) {
+      return { success: false, message: result.message || "Verification sync failed" };
+    }
+
+    revalidatePath("/admin/dashboard/mentor-management");
+    return { success: true, message: `Mentor ${isVerified ? "verified" : "unverified"} successfully` };
+  } catch (error) {
+    return { success: false, message: "External server error" };
+  }
+}
+
+export async function getAllSlotsAction(params: { 
+  mentorId?: string; 
+  status?: string; 
+  page?: number; 
+  limit?: number;
+} = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.mentorId) query.set("mentorId", params.mentorId);
+    if (params.status) query.set("status", params.status);
+    if (params.page) query.set("page", params.page.toString());
+    if (params.limit) query.set("limit", params.limit.toString());
+
+    const response = await serverFetch.get(`/availability-slots?${query.toString()}`, { cache: "no-store" });
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: result.message || "Failed to fetch platform slots" };
+    }
+
+    return { 
+      success: true, 
+      data: result.data || [], 
+      meta: result.meta 
     };
-
-    const validated = mentorUpdateSchema.safeParse(dataToValidate);
-    
-    if (!validated.success) {
-        return {
-            success: false,
-            message: "Validation failed. Please check the form.",
-            errors: validated.error.flatten().fieldErrors,
-            fields: dataToValidate,
-        };
-    }
-
-    try {
-        const res = await serverFetch.patch(`/mentors/${id}`, {
-            body: JSON.stringify(validated.data),
-        });
-
-        const result = await res.json();
-        if (!res.ok) {
-            return { success: false, message: result.message || "Failed to update mentor profile" };
-        }
-
-        revalidatePath("/admin/dashboard/mentor-management");
-        return { success: true, message: "Mentor profile updated successfully" };
-    } catch (error) {
-        console.error("[UPDATE_MENTOR_ERROR]:", error);
-        return { success: false, message: "External server error" };
-    }
+  } catch (error: any) {
+    return { success: false, message: "Internal sync error" };
+  }
 }

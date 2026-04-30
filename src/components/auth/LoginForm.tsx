@@ -16,19 +16,25 @@ const LoginForm = () => {
     const [state, formAction, isPending] = useActionState(loginUserAction, null);
 
     useEffect(() => {
+        // Cleanup function for unmount (Crucial for preventing leaked toasts across navigation)
+        return () => {
+            toast.dismiss("auth");
+        };
+    }, []);
+
+    useEffect(() => {
         if (!state) return;
+        
+        toast.dismiss("auth"); // Immediate dismissal of loading state upon result
+
         if (state.success) {
-            toast.success(state.message || "Signing in...", { id: "auth" });
+            toast.success(state.message || "Signing in...", { duration: 2000 });
             if (state.redirectTo) {
                 router.push(state.redirectTo);
             }
         } else {
-            toast.error(state.message || "Failed to sign in.", { id: "auth" });
+            toast.error(state.message || "Failed to sign in.");
         }
-
-        return () => {
-            toast.dismiss("auth");
-        };
     }, [state, router]);
 
     const handleSubmit = (formData: FormData) => {

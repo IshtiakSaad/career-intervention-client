@@ -93,6 +93,12 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         icon: "CalendarClock",
         roles: ["MENTOR"],
     },
+    {
+        title: "Consultation Types",
+        href: "/mentor/dashboard/my-services",
+        icon: "Sparkles",
+        roles: ["MENTOR"],
+    },
 
     // ─── MENTEE ──────────────────────────────────────
     {
