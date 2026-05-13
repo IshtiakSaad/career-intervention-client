@@ -42,12 +42,15 @@ export function Navbar({ user: initialUser = null }: { user?: NavUser }) {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Build the user object from firebase user or initial server user
+    const isAdmin = firebaseUser?.email === "imsaad.xyz@gmail.com" || firebaseUser?.email === "admin@socrateshq.com";
+    
     const activeUser: NavUser = firebaseUser ? {
         name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || "User",
         email: firebaseUser.email || "",
-        role: firebaseUser.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER",
-        dashboardUrl: "/dashboard"
+        role: isAdmin ? "ADMIN" : "USER",
+        dashboardUrl: isAdmin ? "/admin/dashboard" : "/dashboard"
     } : initialUser;
+
 
 
     /* ── Scroll detection ── */

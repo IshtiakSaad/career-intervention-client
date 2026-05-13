@@ -22,6 +22,8 @@ import {
     updateProfile 
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { setFirebaseSessionAction } from "@/services/auth/firebase-session";
+
 
 const RegisterForm = () => {
     const router = useRouter();
@@ -43,7 +45,17 @@ const RegisterForm = () => {
             await updateProfile(userCredential.user, { displayName: name });
             
             toast.success("Registration successful!", { id: "auth" });
+            // Set server-side session for the newly created user
+            const isAdmin = email === "admin@socrateshq.com" || email === "imsaad.xyz@gmail.com";
+            await setFirebaseSessionAction(email, name, isAdmin ? "ADMIN" : "USER");
+
+            // Redundant Client-Side Cookie
+            const sessionData = JSON.stringify({ email, name, role: isAdmin ? "ADMIN" : "USER" });
+            document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
+            document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
+
             router.push("/");
+
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || "Registration failed.", { id: "auth" });

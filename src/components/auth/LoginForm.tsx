@@ -37,15 +37,17 @@ const LoginForm = () => {
             await setFirebaseSessionAction(
                 user.email || "", 
                 user.displayName || "User",
-                user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER"
+                (user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
             );
 
             // Redundant Client-Side Cookie (Aggressive fix for middleware)
+            const isAdmin = user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com";
             const sessionData = JSON.stringify({ 
                 email: user.email, 
                 name: user.displayName || "User", 
-                role: user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER" 
+                role: isAdmin ? "ADMIN" : "USER" 
             });
+
             document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
             document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
 
@@ -72,15 +74,17 @@ const LoginForm = () => {
             await setFirebaseSessionAction(
                 user.email || "", 
                 user.displayName || user.email?.split('@')[0] || "User",
-                user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER"
+                (user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
             );
 
             // Redundant Client-Side Cookie (Aggressive fix for middleware)
+            const isAdminGoogle = user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com";
             const sessionData = JSON.stringify({ 
                 email: user.email, 
                 name: user.displayName || user.email?.split('@')[0] || "User", 
-                role: user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER" 
+                role: isAdminGoogle ? "ADMIN" : "USER" 
             });
+
             document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
             document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
 
