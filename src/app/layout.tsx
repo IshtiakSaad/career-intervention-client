@@ -29,12 +29,14 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en" className="dark" suppressHydrationWarning>
+
             <body
-                className={`${inter.variable} ${geistMono.variable} antialiased flex flex-col font-sans bg-background text-foreground`}
+                className={`${inter.variable} ${geistMono.variable} antialiased flex flex-col font-sans bg-background text-foreground min-h-screen`}
             >
                 <Providers>{children}</Providers>
             </body>
         </html>
     );
 }
+

@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SocratesHQ | Elite Career Intervention Platform
 
-## Getting Started
+SocratesHQ is a high-performance career mentorship and resource platform engineered for the next generation of global leaders. It provides a tactical ecosystem for professional growth, connecting visionaries with vetted mentors and premium career-advancement resources.
 
-First, run the development server:
+## 🚀 Key Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Strategic Mentor Discovery**: Advanced filtering and search for top-tier global talent.
+- **Elite Profile Systems**: Comprehensive mentor profiles with session history, specialties, and social integration.
+- **Dynamic Resource Marketplace**: Access to FAANG-grade masterclasses and technical engineering resources.
+- **Secure Authentication**: Robust identity management using Firebase with server-side session persistence.
+- **Tactical Obsidian UI**: A premium, dark-first design system built with Tailwind CSS 4 and Lucide Icons.
+- **Intelligent Routing**: Automated role-based access control and layout segmentation.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Setup & Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
+- Node.js 20+ 
+- npm or yarn
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Installation Steps
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd career-intervention-client
+   ```
 
-## Learn More
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+3. **Configure Environment Variables**:
+   Create a `.env.local` file in the root directory and add your Firebase and API configuration:
+   ```env
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_bucket
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   NEXT_PUBLIC_API_URL=your_backend_url
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. **Launch Development Server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🗺️ Route Summary
 
-## Deploy on Vercel
+### Public Routes (Accessible to all)
+- `/` - **Home**: High-conversion landing page.
+- `/about` - **About**: Mission and philosophy of SocratesHQ.
+- `/items` - **Resources**: Marketplace for career masterclasses.
+- `/consultation` - **Discovery**: Talent acquisition and mentor search.
+- `/login` / `/register` - **Auth**: Identity entry points.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Protected Routes (Requires Authentication)
+- `/items/[id]` - **Resource Details**: Full access to item specifications.
+- `/mentors/[id]` - **Mentor Profile**: Deep-dive into mentor expertise and booking.
+- `/dashboard` - **User Dashboard**: Role-specific workspace for Mentees/Mentors.
+- `/my-profile` - **Profile Settings**: Personal identity management.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Engineered for precision. Optimized for results.*

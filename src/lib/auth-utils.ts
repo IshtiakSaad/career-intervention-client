@@ -10,9 +10,10 @@ export const authRoutes = AUTH_ROUTES;
 
 // Routes accessible by any logged-in user
 export const commonProtectedRoutes: RouteConfig = {
-    exact: ["/my-profile", "/settings"],
+    exact: ["/my-profile", "/settings", "/items/add", "/items/manage"],
     patterns: [], 
 }
+
 
 // Routes accessible strictly by MENTORs
 export const mentorProtectedRoutes: RouteConfig = {

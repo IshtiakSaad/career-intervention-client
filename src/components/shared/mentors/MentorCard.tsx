@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
+
 
 interface MentorCardProps {
   mentor: any;
@@ -63,7 +65,7 @@ export const MentorCard = ({ mentor, onBook }: MentorCardProps) => {
           </div>
         </div>
 
-        <div className="mt-4 space-y-1">
+        <Link href={`/mentors/${mentor.id}`} className="mt-4 block space-y-1 group/title">
           <h3 className="text-lg font-black tracking-tight text-foreground truncate group-hover:text-brand-acid transition-colors">
             {user.name}
           </h3>
@@ -71,7 +73,8 @@ export const MentorCard = ({ mentor, onBook }: MentorCardProps) => {
             <Sparkles className="size-3 shrink-0" />
             {mentor.headline || mentor.designation || "Career Consultant"}
           </p>
-        </div>
+        </Link>
+
       </CardHeader>
 
       <CardContent className="p-6 flex-1 flex flex-col">

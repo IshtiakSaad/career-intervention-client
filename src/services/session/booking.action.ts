@@ -4,7 +4,7 @@ import { serverFetch } from "@/lib/serverFetch";
 import { revalidatePath } from "next/cache";
 
 /**
- * BOOKING & SUPPLY ACTIONS (v6.0)
+ * BOOKING & SUPPLY ACTIONS
  * Orchestrates mentor availability and session creation.
  */
 
