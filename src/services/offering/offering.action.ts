@@ -25,7 +25,8 @@ export async function getMyOfferings() {
     const user = await AuthAction.getCurrentUser();
     if (!user || !user.email) return { success: false, message: "Unauthorized" };
 
-    const res = await serverFetch.get(`/services?userId=${user.userId}`);
+    const res = await serverFetch.get(`/services?userId=${user.id}`);
+
     const result = await res.json();
 
     if (!res.ok) {

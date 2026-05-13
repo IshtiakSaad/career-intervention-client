@@ -23,7 +23,11 @@ interface MentorDetailPageProps {
     }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function MentorDetailPage({ params }: MentorDetailPageProps) {
+
+
     const { id } = await params;
     const res = await getMentorDetails(id);
 

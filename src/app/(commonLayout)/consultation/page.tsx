@@ -3,11 +3,14 @@ import { MOCK_MENTORS } from "@/lib/mock-mentors";
 import { MentorDiscoveryWrapper } from "@/components/shared/mentors/MentorDiscoveryWrapper";
 
 
+export const dynamic = "force-dynamic";
+
 /**
  * CONSULTATION / MENTOR DISCOVERY PAGE
  * Server Component: Orchestrates high-speed talent acquisition data fetching.
  */
 export default async function ConsultationPage() {
+
     const [mentorsRes, specialtiesRes] = await Promise.all([
         getAllMentors({ limit: 10 }),
         getSpecialties()

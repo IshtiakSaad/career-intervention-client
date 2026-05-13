@@ -1,11 +1,10 @@
 import { getAllMentors, getSpecialties } from "@/services/mentor/mentor.action";
 import { MentorDiscoveryWrapper } from "@/components/shared/mentors/MentorDiscoveryWrapper";
 
-/**
- * HIGH-PERFORMANCE DISCOVERY ENTRY POINT (v6.0)
- * Server-side data orchestration for SEO and FCP optimization.
- */
+export const dynamic = "force-dynamic";
+
 export default async function MentorsPage() {
+
   // Parallel data fetching for speed
   const [mentorsRes, specialtiesRes] = await Promise.all([
     getAllMentors({ page: 1, limit: 10 }),
