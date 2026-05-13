@@ -5,6 +5,8 @@ import { LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { logoutUserAction } from "@/services/auth/action";
+import { clearFirebaseSessionAction } from "@/services/auth/firebase-session";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 
 interface LogoutButtonProps {
@@ -19,23 +21,38 @@ const LogoutButton = ({
     showLabel = true
 }: LogoutButtonProps) => {
     const [isPending, startTransition] = useTransition();
+    const { user: firebaseUser, logout: firebaseLogout } = useAuth();
 
     const handleLogout = () => {
         toast.loading("Logging out...", { id: "logout" });
         startTransition(async () => {
             try {
+                // 1. Clear server-side firebase session cookies
+                await clearFirebaseSessionAction();
+
+                // 2. Sign out from Firebase Auth (client-side)
+                if (firebaseUser) {
+                    await firebaseLogout();
+                }
+
+                // 3. Clear client-side cookies (set during login via document.cookie)
+                document.cookie = "firebase-session=; path=/; max-age=0";
+                document.cookie = "accessToken=; path=/; max-age=0";
+
+                // 4. Clear legacy JWT session
                 await logoutUserAction();
+
                 toast.success("Logged out successfully.", { id: "logout" });
             } catch (error) {
                 if (error instanceof Error && error.message === "NEXT_REDIRECT") {
-                    // This is expected. Success toast is hard, but we can do it here:
                     toast.success("Logged out successfully.", { id: "logout" });
                     throw error;
                 }
-                toast.error("An error occurred locally during logout.", { id: "logout" });
+                toast.error("An error occurred during logout.", { id: "logout" });
             }
         });
     };
+
 
     return (
         <Button

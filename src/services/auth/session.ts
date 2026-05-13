@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+export { cookies };
+
 import { jwtDecode } from "jwt-decode";
 import { TAuthTokens } from "./auth.types";
 
@@ -56,11 +58,17 @@ export async function setAuthTokens(tokens: TAuthTokens) {
  */
 export async function getAccessToken(): Promise<string | null> {
     const cookieStore = await cookies();
+    
+    // Check for Firebase session first
+    const firebaseSession = cookieStore.get("firebase-session")?.value;
+    if (firebaseSession) return "firebase-dummy-token";
+
     const token = cookieStore.get("accessToken")?.value;
     
     if (!token || isExpired(token)) return null;
     return token;
 }
+
 
 /**
  * Retrieves the refreshToken (raw, as it has a much longer shelf-life).

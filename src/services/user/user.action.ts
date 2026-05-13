@@ -15,11 +15,42 @@ import { transformToIdentityModel } from "./user.transformer";
  */
 export async function getCurrentUser(): Promise<TUserIdentity | null> {
     const cookieStore = await cookies();
+    const firebaseSession = cookieStore.get("firebase-session")?.value;
+
+    if (firebaseSession) {
+        try {
+            const data = JSON.parse(firebaseSession);
+            return {
+                id: "firebase-user",
+                name: data.name,
+                email: data.email,
+                roles: [data.role],
+                profileImageUrl: null,
+                timezone: "UTC",
+                gender: "OTHERS",
+                accountStatus: "ACTIVE",
+                twoFactorEnabled: false,
+                needPasswordChange: false,
+                phoneNumber: null,
+                lastLoginAt: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                mentorProfile: null,
+                menteeProfile: null,
+                adminProfile: null,
+            } as any;
+        } catch (e) {
+            console.error("Failed to parse firebase session", e);
+        }
+    }
+
+
     const accessToken = cookieStore.get("accessToken")?.value;
 
     if (!accessToken) {
         return null;
     }
+
 
     try {
         // JWT is a hint — extract userId for the fetch target

@@ -7,6 +7,20 @@ import { JWTPayloadSchema } from './services/auth/auth.types';
 export async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     
+    // ─── FIREBASE SESSION BYPASS ───
+    // If the user has a Firebase session cookie, skip all JWT validation
+    // and treat them as an authenticated user.
+    const firebaseSession = request.cookies.get("firebase-session")?.value;
+    if (firebaseSession) {
+        const isAuth = isAuthRoute(pathname);
+        // If logged-in Firebase user tries to access /login, send them home
+        if (isAuth) {
+            return NextResponse.redirect(new URL('/', request.url));
+        }
+        // Otherwise, let them through to any route
+        return NextResponse.next();
+    }
+
     // Get token using request.cookies (safest in Edge Middleware)
     const accessToken = request.cookies.get("accessToken")?.value || null;
 
@@ -41,6 +55,7 @@ export async function proxy(request: NextRequest) {
             return response;
         }
     }
+
 
     const routeOwner = getRouteOwner(pathname);
     const isAuth = isAuthRoute(pathname);

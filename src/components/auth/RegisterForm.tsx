@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useActionState, useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -15,41 +15,63 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { User, Mail, Lock, Phone, Image, Target, Globe, Loader2 } from "lucide-react";
-import { registerUserAction } from "@/services/auth";
-import { FieldError } from "@/components/shared/forms/FieldError";
+import { 
+    createUserWithEmailAndPassword, 
+    signInWithPopup, 
+    GoogleAuthProvider,
+    updateProfile 
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const RegisterForm = () => {
     const router = useRouter();
-    const [state, formAction, isPending] = useActionState(registerUserAction, null);
+    const [isPending, setIsPending] = useState(false);
     const [gender, setGender] = useState<string>("");
 
-    useEffect(() => {
-        if (!state) return;
-        if (state.success) {
-            toast.success(state.message || "Registration successful!", { id: "auth" });
-            if (state.redirectTo) {
-                router.push(state.redirectTo);
-            }
-        } else {
-            toast.error(state.message || "Registration failed. Please check the form.", { id: "auth" });
-        }
-    }, [state, router]);
+    const handleEmailRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
 
-    const handleSubmit = (formData: FormData) => {
+        setIsPending(true);
         toast.loading("Creating your profile...", { id: "auth" });
-        formAction(formData);
+
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await updateProfile(userCredential.user, { displayName: name });
+            
+            toast.success("Registration successful!", { id: "auth" });
+            router.push("/");
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Registration failed.", { id: "auth" });
+        } finally {
+            setIsPending(false);
+        }
     };
 
-    // Cleanup on generic unmount
-    useEffect(() => {
-        return () => {
-            toast.dismiss("auth");
-        };
-    }, []);
+    const handleGoogleSignUp = async () => {
+        setIsPending(true);
+        toast.loading("Connecting to Google...", { id: "auth" });
+        
+        try {
+            const provider = new GoogleAuthProvider();
+            await signInWithPopup(auth, provider);
+            toast.success("Signed up with Google!", { id: "auth" });
+            router.push("/");
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Google sign-up failed.", { id: "auth" });
+        } finally {
+            setIsPending(false);
+        }
+    };
 
     return (
         <div className="w-full">
-            <form action={handleSubmit}>
+            <form onSubmit={handleEmailRegister}>
                 <div className="flex flex-col gap-5">
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -63,9 +85,9 @@ const RegisterForm = () => {
                                 name="name"
                                 type="text"
                                 placeholder="Enter your full name"
+                                required
                                 className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                             />
-                            <FieldError errors={state?.errors} name="name" />
                         </div>
                         <div className="grid gap-2 text-left">
                             <Label htmlFor="email" className="flex items-center gap-2">
@@ -80,7 +102,6 @@ const RegisterForm = () => {
                                 required
                                 className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                             />
-                            <FieldError errors={state?.errors} name="email" />
                         </div>
                     </div>
 
@@ -98,7 +119,6 @@ const RegisterForm = () => {
                             placeholder="••••••••"
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                         />
-                        <FieldError errors={state?.errors} name="password" />
                     </div>
 
                     {/* Contact & Gender */}
@@ -115,7 +135,6 @@ const RegisterForm = () => {
                                 placeholder="+880 1700 000 000"
                                 className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                             />
-                            <FieldError errors={state?.errors} name="phoneNumber" />
                         </div>
                         <div className="grid gap-2 text-left">
                             <Label htmlFor="gender-select" className="flex items-center gap-2">
@@ -133,25 +152,7 @@ const RegisterForm = () => {
                                     <SelectItem value="OTHERS">Other</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FieldError errors={state?.errors} name="gender" />
                         </div>
-                    </div>
-
-                    {/* Profile Media */}
-                    <div className="grid gap-2 text-left">
-                        <Label htmlFor="file" className="flex items-center gap-2">
-                            <Image className="size-3.5 text-brand-acid" />
-                            Profile Picture
-                        </Label>
-                        <Input
-                            id="file"
-                            name="file"
-                            type="file"
-                            accept="image/*"
-                            className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans cursor-pointer"
-                        />
-                        <FieldError errors={state?.errors} name="file" />
-                        <p className="text-[10px] text-muted-foreground/60 uppercase tracking-tighter pl-1">JPG, PNG or GIF (Max 5MB)</p>
                     </div>
 
                     {/* Objectives */}
@@ -166,20 +167,7 @@ const RegisterForm = () => {
                             placeholder="Tell us about your professional aspirations..."
                             className="min-h-[80px] bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all resize-none font-sans"
                         />
-                        <FieldError errors={state?.errors} name="careerGoals" />
                     </div>
-
-                    {/* Feedback Messages */}
-                    {!state?.success && state?.message && (
-                        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold uppercase tracking-widest text-center">
-                            {state.message}
-                        </div>
-                    )}
-                    {state?.success && (
-                        <div className="p-3 bg-brand-acid/10 border border-brand-acid/20 text-brand-acid text-xs font-bold uppercase tracking-widest text-center">
-                            {state.message}
-                        </div>
-                    )}
 
                     {/* Actions */}
                     <div className="flex flex-col gap-3 pt-4">
@@ -197,6 +185,7 @@ const RegisterForm = () => {
                                 "SIGN UP"
                             )}
                         </Button>
+
                         <div className="relative my-2">
                             <div className="absolute inset-0 flex items-center">
                                 <span className="w-full border-t border-white/10" />
@@ -205,7 +194,14 @@ const RegisterForm = () => {
                                 <span className="bg-[#050505] px-4">Or sign up with</span>
                             </div>
                         </div>
-                        <Button variant="outline" type="button" className="w-full border-white/10 hover:bg-white/5 uppercase tracking-wider text-xs h-10 transition-all font-sans">
+
+                        <Button 
+                            variant="outline" 
+                            type="button" 
+                            onClick={handleGoogleSignUp}
+                            disabled={isPending}
+                            className="w-full border-white/10 hover:bg-white/5 uppercase tracking-wider text-xs h-10 transition-all font-sans"
+                        >
                             <Globe className="mr-2 size-4" />
                             Google
                         </Button>

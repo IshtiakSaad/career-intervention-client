@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useActionState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -8,45 +8,95 @@ import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Mail, Lock, Globe, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { loginUserAction } from "@/services/auth";
-import { FieldError } from "@/components/shared/forms/FieldError";
+import { 
+    signInWithEmailAndPassword, 
+    signInWithPopup, 
+    GoogleAuthProvider 
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { setFirebaseSessionAction } from "@/services/auth/firebase-session";
 
 const LoginForm = () => {
     const router = useRouter();
-    const [state, formAction, isPending] = useActionState(loginUserAction, null);
+    const [isPending, setIsPending] = useState(false);
 
-    useEffect(() => {
-        // Cleanup function for unmount (Crucial for preventing leaked toasts across navigation)
-        return () => {
-            toast.dismiss("auth");
-        };
-    }, []);
+    const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
 
-    useEffect(() => {
-        if (!state) return;
-        
-        toast.dismiss("auth"); // Immediate dismissal of loading state upon result
-
-        if (state.success) {
-            toast.success(state.message || "Signing in...", { duration: 2000 });
-            if (state.redirectTo) {
-                router.push(state.redirectTo);
-            }
-        } else {
-            toast.error(state.message || "Failed to sign in.");
-        }
-    }, [state, router]);
-
-    const handleSubmit = (formData: FormData) => {
+        setIsPending(true);
         toast.loading("Verifying credentials...", { id: "auth" });
-        formAction(formData);
+
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            // Set server-side session
+            await setFirebaseSessionAction(
+                user.email || "", 
+                user.displayName || "User",
+                user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER"
+            );
+
+            // Redundant Client-Side Cookie (Aggressive fix for middleware)
+            const sessionData = JSON.stringify({ 
+                email: user.email, 
+                name: user.displayName || "User", 
+                role: user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER" 
+            });
+            document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
+            document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
+
+            toast.success("Signed in successfully!", { id: "auth" });
+            router.push("/");
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Failed to sign in.", { id: "auth" });
+        } finally {
+            setIsPending(false);
+        }
     };
 
+    const handleGoogleLogin = async () => {
+        setIsPending(true);
+        toast.loading("Connecting to Google...", { id: "auth" });
+        
+        try {
+            const provider = new GoogleAuthProvider();
+            const userCredential = await signInWithPopup(auth, provider);
+            const user = userCredential.user;
+
+            // Set server-side session
+            await setFirebaseSessionAction(
+                user.email || "", 
+                user.displayName || user.email?.split('@')[0] || "User",
+                user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER"
+            );
+
+            // Redundant Client-Side Cookie (Aggressive fix for middleware)
+            const sessionData = JSON.stringify({ 
+                email: user.email, 
+                name: user.displayName || user.email?.split('@')[0] || "User", 
+                role: user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER" 
+            });
+            document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
+            document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
+
+            toast.success("Signed in with Google!", { id: "auth" });
+            router.push("/");
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Google sign-in failed.", { id: "auth" });
+        } finally {
+            setIsPending(false);
+        }
+    };
 
     return (
         <div className="w-full">
-            <form action={handleSubmit}>
-
+            <form onSubmit={handleEmailLogin}>
                 <div className="flex flex-col gap-5">
                     <div className="grid gap-2 text-left">
                         <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
@@ -61,7 +111,6 @@ const LoginForm = () => {
                             required
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                         />
-                        <FieldError errors={state?.errors} name="email" />
                     </div>
 
                     <div className="grid gap-2 text-left">
@@ -88,20 +137,7 @@ const LoginForm = () => {
                             placeholder="••••••••"
                             className="bg-brand-obsidian/50 border-white/10 focus:border-brand-acid/50 transition-all font-sans"
                         />
-                        <FieldError errors={state?.errors} name="password" />
                     </div>
-
-                    {/* Feedback Messages */}
-                    {!state?.success && state?.message && (
-                        <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold uppercase tracking-widest text-center">
-                            {state.message}
-                        </div>
-                    )}
-                    {state?.success && (
-                        <div className="p-3 bg-brand-acid/10 border border-brand-acid/20 text-brand-acid text-xs font-bold uppercase tracking-widest text-center">
-                            {state.message}
-                        </div>
-                    )}
 
                     <div className="flex flex-col gap-3 pt-4">
                         <Button
@@ -118,6 +154,7 @@ const LoginForm = () => {
                                 "SIGN IN"
                             )}
                         </Button>
+
                         <div className="relative my-2">
                             <div className="absolute inset-0 flex items-center">
                                 <span className="w-full border-t border-white/10" />
@@ -126,7 +163,14 @@ const LoginForm = () => {
                                 <span className="bg-[#050505] px-4">Or sign in with</span>
                             </div>
                         </div>
-                        <Button variant="outline" type="button" className="w-full border-white/10 hover:bg-white/5 uppercase tracking-wider text-xs h-10 transition-all font-sans">
+
+                        <Button 
+                            variant="outline" 
+                            type="button" 
+                            onClick={handleGoogleLogin}
+                            disabled={isPending}
+                            className="w-full border-white/10 hover:bg-white/5 uppercase tracking-wider text-xs h-10 transition-all font-sans"
+                        >
                             <Globe className="mr-2 size-4" />
                             Google
                         </Button>

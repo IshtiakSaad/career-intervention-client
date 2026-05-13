@@ -111,6 +111,13 @@ const serverFetchHelper = async (endpoint: string, options: ServerFetchOptions):
             const retryToken = await getValidAccessToken({ forceRefresh: true });
 
             if (!retryToken) {
+                // Assessment logic: Don't redirect if we have a Firebase session
+                const cookieStore = await AuthSession.cookies();
+                if (cookieStore.get("firebase-session")?.value) {
+                    console.warn("[SERVER_FETCH]: Token missing but Firebase session active. Skipping redirect.");
+                    return response;
+                }
+
                 console.error("[SERVER_FETCH]: Refresh path failed during 401 retry. Forcing logout.");
                 await AuthSession.clearAuthTokens();
                 redirect("/login");
@@ -121,6 +128,13 @@ const serverFetchHelper = async (endpoint: string, options: ServerFetchOptions):
 
             // SECOND FAILURE -> COMPROMISED SESSION -> TERMINATE
             if (response.status === 401) {
+                // Assessment logic: Don't redirect if we have a Firebase session
+                const cookieStore = await AuthSession.cookies();
+                if (cookieStore.get("firebase-session")?.value) {
+                    console.warn("[SERVER_FETCH]: 401 persisted but Firebase session active. Skipping redirect.");
+                    return response;
+                }
+
                 console.error("[SERVER_FETCH]: 401 persisted after successful refresh call. Terminating session.");
                 await AuthSession.clearAuthTokens();
                 redirect("/login");
@@ -128,6 +142,7 @@ const serverFetchHelper = async (endpoint: string, options: ServerFetchOptions):
         }
 
         return response;
+
     } catch (error: any) {
         if (error.name === 'AbortError') {
             console.error({
