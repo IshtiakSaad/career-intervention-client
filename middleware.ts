@@ -36,14 +36,20 @@ export function middleware(request: NextRequest) {
     }
 
     // 5. Redirect if protected and no token
-    if (isProtectedRoute && !accessToken) {
+    if (isProtectedRoute && !accessToken && !firebaseSession) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("redirect", pathname);
         return NextResponse.redirect(loginUrl);
     }
+
+    // 6. If already logged in and trying to access login/register, redirect to dashboard
+    if ((pathname === '/login' || pathname === '/register') && (firebaseSession || accessToken)) {
+        return NextResponse.redirect(new URL("/", request.url));
+    }
     
     return NextResponse.next();
 }
+
 
 export const config = {
     matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],

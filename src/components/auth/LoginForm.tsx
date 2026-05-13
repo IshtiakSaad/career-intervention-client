@@ -41,8 +41,9 @@ const LoginForm = () => {
             );
 
             toast.success("Signed in successfully!", { id: "auth" });
-            router.push("/");
+            window.location.href = "/";
         } catch (error: any) {
+
             console.error(error);
             toast.error(error.message || "Failed to sign in.", { id: "auth" });
         } finally {
@@ -67,8 +68,9 @@ const LoginForm = () => {
             );
 
             toast.success("Signed in with Google!", { id: "auth" });
-            router.push("/");
+            window.location.href = "/";
         } catch (error: any) {
+
             console.error(error);
             toast.error(error.message || "Google sign-in failed.", { id: "auth" });
         } finally {

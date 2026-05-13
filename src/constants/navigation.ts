@@ -40,9 +40,23 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         category: "User Management",
     },
     {
+        title: "Admin Roster",
+        href: "/admin/dashboard/admins-management",
+        icon: "UserCog",
+        roles: ["ADMIN"],
+        category: "User Management",
+    },
+    {
         title: "Platform Resources",
-        href: "/items/manage",
+        href: "/admin/dashboard/items-management",
         icon: "Sparkles",
+        roles: ["ADMIN"],
+        category: "Platform Management",
+    },
+    {
+        title: "Service Specialities",
+        href: "/admin/dashboard/specialities-management",
+        icon: "ClipboardList",
         roles: ["ADMIN"],
         category: "Platform Management",
     },
@@ -53,6 +67,14 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         roles: ["ADMIN"],
         category: "Platform Management",
     },
+    {
+        title: "Schedules Monitor",
+        href: "/admin/dashboard/schedules-management",
+        icon: "CalendarClock",
+        roles: ["ADMIN"],
+        category: "Platform Management",
+    },
+
 
     // ─── MENTOR ──────────────────────────────────────
     {

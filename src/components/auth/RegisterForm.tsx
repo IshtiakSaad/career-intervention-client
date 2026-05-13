@@ -49,9 +49,10 @@ const RegisterForm = () => {
             const isAdmin = email === "admin@socrateshq.com";
             await setFirebaseSessionAction(email, name, isAdmin ? "ADMIN" : "USER");
 
-            router.push("/");
-
+            toast.success("Registration successful!", { id: "auth" });
+            window.location.href = "/";
         } catch (error: any) {
+
             console.error(error);
             toast.error(error.message || "Registration failed.", { id: "auth" });
         } finally {
