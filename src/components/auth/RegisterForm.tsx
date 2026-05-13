@@ -49,11 +49,6 @@ const RegisterForm = () => {
             const isAdmin = email === "admin@socrateshq.com";
             await setFirebaseSessionAction(email, name, isAdmin ? "ADMIN" : "USER");
 
-            // Redundant Client-Side Cookie
-            const sessionData = JSON.stringify({ email, name, role: isAdmin ? "ADMIN" : "USER" });
-            document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
-            document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
-
             router.push("/");
 
         } catch (error: any) {

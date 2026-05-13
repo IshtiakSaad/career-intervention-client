@@ -19,9 +19,14 @@ export async function getCurrentUser(): Promise<TUserIdentity | null> {
 
     if (firebaseSession) {
         try {
-            const data = JSON.parse(decodeURIComponent(firebaseSession));
+            // Attempt to parse directly, fallback to decoding if it fails
+            let sessionData = firebaseSession;
+            if (sessionData.startsWith('%')) {
+                sessionData = decodeURIComponent(sessionData);
+            }
+            const data = JSON.parse(sessionData);
+            
             return {
-
                 id: "firebase-user",
                 name: data.name,
                 email: data.email,
@@ -41,9 +46,11 @@ export async function getCurrentUser(): Promise<TUserIdentity | null> {
                 adminProfile: null,
             } as any;
         } catch (e) {
-            console.error("Failed to parse firebase session", e);
+            console.error("[GET_CURRENT_USER]: Failed to parse firebase session", e);
+            // If parsing fails, fall through to accessToken logic
         }
     }
+
 
 
     const accessToken = cookieStore.get("accessToken")?.value;
