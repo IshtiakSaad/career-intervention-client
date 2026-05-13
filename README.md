@@ -62,5 +62,14 @@ SocratesHQ is a high-performance career mentorship and resource platform enginee
 - `/dashboard` - **User Dashboard**: Role-specific workspace for Mentees/Mentors.
 - `/my-profile` - **Profile Settings**: Personal identity management.
 
+## 🔑 Master Admin Credentials
+
+For evaluation of the administrative dashboard (Mentor Vetting, User Directory, etc.), please use the following Master Admin account. This account is configured for standard email/password authentication.
+
+- **Email**: `admin@socrateshq.com`
+- **Password**: `AdminSocrates2026!`
+- **Role**: `ADMIN`
+
 ---
 *Engineered for precision. Optimized for results.*
+
