@@ -26,25 +26,39 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         roles: ["ADMIN"],
     },
     {
-        title: "Admins Management",
-        href: "/admin/dashboard/admins-management",
-        icon: "UserCog",
-        roles: ["ADMIN"],
-        category: "User Management",
-    },
-    {
-        title: "Mentor Management",
+        title: "Mentor Vetting",
         href: "/admin/dashboard/mentor-management",
         icon: "Users",
         roles: ["ADMIN"],
         category: "User Management",
     },
     {
-        title: "Mentee Management",
+        title: "User Directory",
         href: "/admin/dashboard/mentee-management",
         icon: "GraduationCap",
         roles: ["ADMIN"],
         category: "User Management",
+    },
+    {
+        title: "Admin Roster",
+        href: "/admin/dashboard/admins-management",
+        icon: "UserCog",
+        roles: ["ADMIN"],
+        category: "User Management",
+    },
+    {
+        title: "Platform Resources",
+        href: "/admin/dashboard/items-management",
+        icon: "Sparkles",
+        roles: ["ADMIN"],
+        category: "Platform Management",
+    },
+    {
+        title: "Service Specialities",
+        href: "/admin/dashboard/specialities-management",
+        icon: "ClipboardList",
+        roles: ["ADMIN"],
+        category: "Platform Management",
     },
     {
         title: "Appointments",
@@ -54,19 +68,13 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         category: "Platform Management",
     },
     {
-        title: "Schedules",
+        title: "Schedules Monitor",
         href: "/admin/dashboard/schedules-management",
         icon: "CalendarClock",
         roles: ["ADMIN"],
         category: "Platform Management",
     },
-    {
-        title: "Specialities",
-        href: "/admin/dashboard/specialities-management",
-        icon: "Sparkles",
-        roles: ["ADMIN"],
-        category: "Platform Management",
-    },
+
 
     // ─── MENTOR ──────────────────────────────────────
     {
@@ -76,27 +84,27 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         roles: ["MENTOR"],
     },
     {
-        title: "Appointments",
+        title: "Upcoming Sessions",
         href: "/mentor/dashboard/appointments",
         icon: "CalendarCheck",
         roles: ["MENTOR"],
     },
     {
-        title: "Action Plans",
-        href: "/mentor/dashboard/action-plans",
-        icon: "ClipboardList",
-        roles: ["MENTOR"],
-    },
-    {
-        title: "My Schedules",
+        title: "Supply & Availability",
         href: "/mentor/dashboard/my-schedules",
         icon: "CalendarClock",
         roles: ["MENTOR"],
     },
     {
-        title: "Consultation Types",
+        title: "My Consultation Types",
         href: "/mentor/dashboard/my-services",
         icon: "Sparkles",
+        roles: ["MENTOR"],
+    },
+    {
+        title: "Manage My Items",
+        href: "/items/manage",
+        icon: "ClipboardList",
         roles: ["MENTOR"],
     },
 
@@ -108,7 +116,7 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         roles: ["MENTEE"],
     },
     {
-        title: "My Appointments",
+        title: "Booked Sessions",
         href: "/dashboard/my-appointments",
         icon: "CalendarCheck",
         roles: ["MENTEE"],
@@ -119,7 +127,20 @@ export const DASHBOARD_NAV_ITEMS: NavItem[] = [
         icon: "ClipboardList",
         roles: ["MENTEE"],
     },
+    {
+        title: "Manage My Items",
+        href: "/items/manage",
+        icon: "Sparkles",
+        roles: ["MENTEE"],
+    },
+    {
+        title: "Browse Mentors",
+        href: "/consultation",
+        icon: "Users",
+        roles: ["MENTEE"],
+    },
 ];
+
 
 /**
  * Returns the correct profile href for a given role.

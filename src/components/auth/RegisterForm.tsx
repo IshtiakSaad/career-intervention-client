@@ -15,13 +15,15 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { User, Mail, Lock, Phone, Image, Target, Globe, Loader2 } from "lucide-react";
-import { 
-    createUserWithEmailAndPassword, 
-    signInWithPopup, 
+import {
+    createUserWithEmailAndPassword,
+    signInWithPopup,
     GoogleAuthProvider,
-    updateProfile 
+    updateProfile
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { setFirebaseSessionAction } from "@/services/auth/firebase-session";
+
 
 const RegisterForm = () => {
     const router = useRouter();
@@ -41,10 +43,16 @@ const RegisterForm = () => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
-            
+
             toast.success("Registration successful!", { id: "auth" });
-            router.push("/");
+            // Set server-side session for the newly created user
+            const isAdmin = email === "admin@socrateshq.com";
+            await setFirebaseSessionAction(email, name, isAdmin ? "ADMIN" : "USER");
+
+            toast.success("Registration successful!", { id: "auth" });
+            window.location.href = "/";
         } catch (error: any) {
+
             console.error(error);
             toast.error(error.message || "Registration failed.", { id: "auth" });
         } finally {
@@ -55,7 +63,7 @@ const RegisterForm = () => {
     const handleGoogleSignUp = async () => {
         setIsPending(true);
         toast.loading("Connecting to Google...", { id: "auth" });
-        
+
         try {
             const provider = new GoogleAuthProvider();
             await signInWithPopup(auth, provider);
@@ -195,9 +203,9 @@ const RegisterForm = () => {
                             </div>
                         </div>
 
-                        <Button 
-                            variant="outline" 
-                            type="button" 
+                        <Button
+                            variant="outline"
+                            type="button"
                             onClick={handleGoogleSignUp}
                             disabled={isPending}
                             className="w-full border-white/10 hover:bg-white/5 uppercase tracking-wider text-xs h-10 transition-all font-sans"

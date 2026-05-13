@@ -2,6 +2,14 @@
 
 SocratesHQ is a high-performance career mentorship and resource platform engineered for the next generation of global leaders. It provides a tactical ecosystem for professional growth, connecting visionaries with vetted mentors and premium career-advancement resources.
 
+## 🔑 Master Admin Credentials
+
+For evaluation of the administrative dashboard (Mentor Vetting, User Directory, etc.), please use the following Master Admin account. This account is configured for standard email/password authentication.
+
+- **Email**: `admin@socrateshq.com`
+- **Password**: `AdminSocrates2026!`
+- **Role**: `ADMIN`
+
 ## 🚀 Key Features
 
 - **Strategic Mentor Discovery**: Advanced filtering and search for top-tier global talent.
@@ -62,5 +70,8 @@ SocratesHQ is a high-performance career mentorship and resource platform enginee
 - `/dashboard` - **User Dashboard**: Role-specific workspace for Mentees/Mentors.
 - `/my-profile` - **Profile Settings**: Personal identity management.
 
+
+
 ---
 *Engineered for precision. Optimized for results.*
+

@@ -104,35 +104,9 @@ export async function logoutUserAction(): Promise<never> {
  * Safe to call from both Client and Server components.
  */
 export async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const firebaseSession = cookieStore.get("firebase-session")?.value;
-
-  if (firebaseSession) {
-    try {
-      const data = JSON.parse(firebaseSession);
-      return {
-        ...data,
-        roles: [data.role],
-      };
-    } catch (e) {
-      console.error("Failed to parse firebase session", e);
-    }
-  }
-
-
-  const token = await AuthSession.getAccessToken();
-  if (!token) return null;
-
-
-  try {
-    const decoded = jwtDecode<TJWTPayload>(token);
-    return {
-      userId: decoded.id,
-      email: decoded.email,
-      roles: decoded.roles,
-    };
-  } catch (error) {
-    return null;
-  }
+  // Always use the centralized implementation from @/services/user
+  const { getCurrentUser: getIdentity } = await import("@/services/user/user.action");
+  return await getIdentity();
 }
+
 

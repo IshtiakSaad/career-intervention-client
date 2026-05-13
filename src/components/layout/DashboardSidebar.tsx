@@ -86,10 +86,11 @@ const DashboardSidebar = ({ user, navItems }: DashboardSidebarProps) => {
                 collapsed ? "justify-center" : "justify-between"
             )}>
                 {!collapsed && (
-                    <span className="font-bold tracking-widest text-brand-acid uppercase text-xs">
+                    <Link href="/" className="font-bold tracking-widest text-brand-acid uppercase text-xs hover:opacity-80 transition-opacity">
                         SocratesHQ
-                    </span>
+                    </Link>
                 )}
+
                 <Button
                     variant="ghost"
                     size="icon-sm"

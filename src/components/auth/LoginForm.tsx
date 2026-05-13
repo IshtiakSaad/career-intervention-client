@@ -37,21 +37,13 @@ const LoginForm = () => {
             await setFirebaseSessionAction(
                 user.email || "", 
                 user.displayName || "User",
-                user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER"
+                (user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
             );
 
-            // Redundant Client-Side Cookie (Aggressive fix for middleware)
-            const sessionData = JSON.stringify({ 
-                email: user.email, 
-                name: user.displayName || "User", 
-                role: user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER" 
-            });
-            document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
-            document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
-
             toast.success("Signed in successfully!", { id: "auth" });
-            router.push("/");
+            window.location.href = "/";
         } catch (error: any) {
+
             console.error(error);
             toast.error(error.message || "Failed to sign in.", { id: "auth" });
         } finally {
@@ -72,21 +64,13 @@ const LoginForm = () => {
             await setFirebaseSessionAction(
                 user.email || "", 
                 user.displayName || user.email?.split('@')[0] || "User",
-                user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER"
+                (user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
             );
 
-            // Redundant Client-Side Cookie (Aggressive fix for middleware)
-            const sessionData = JSON.stringify({ 
-                email: user.email, 
-                name: user.displayName || user.email?.split('@')[0] || "User", 
-                role: user.email === "imsaad.xyz@gmail.com" ? "ADMIN" : "USER" 
-            });
-            document.cookie = `firebase-session=${encodeURIComponent(sessionData)}; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
-            document.cookie = `accessToken=firebase-dummy-token; path=/; max-age=${60 * 60 * 24 * 7}; sameSite=lax`;
-
             toast.success("Signed in with Google!", { id: "auth" });
-            router.push("/");
+            window.location.href = "/";
         } catch (error: any) {
+
             console.error(error);
             toast.error(error.message || "Google sign-in failed.", { id: "auth" });
         } finally {
