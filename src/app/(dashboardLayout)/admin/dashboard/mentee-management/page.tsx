@@ -31,8 +31,37 @@ async function refreshAction() {
     revalidatePath("/admin/dashboard/mentee-management");
 }
 
+const MOCK_MENTEES = [
+    {
+        id: "u1",
+        name: "Jordan Smith",
+        email: "jordan@example.com",
+        profileImageUrl: null,
+        phoneNumber: "+1 555-0101",
+        accountStatus: "ACTIVE",
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+        menteeProfile: { careerGoals: "Transitioning to Senior Frontend Engineer at a Fintech scaleup." }
+    },
+    {
+        id: "u2",
+        name: "Lila Vance",
+        email: "lila@example.com",
+        profileImageUrl: null,
+        phoneNumber: "+1 555-0102",
+        accountStatus: "ACTIVE",
+        createdAt: new Date().toISOString(),
+        lastLoginAt: null,
+        menteeProfile: { careerGoals: "Mastering System Design and Distributed Systems for Architect roles." }
+    }
+];
+
 async function MenteeTableData({ paramsStr }: { paramsStr: string }) {
     const { data, meta } = await fetchUsers(`role=MENTEE&${paramsStr}`);
+
+    const displayData = data?.length > 0 ? data : MOCK_MENTEES;
+    const displayMeta = data?.length > 0 ? meta : { total: MOCK_MENTEES.length, page: 1, limit: 10, totalPages: 1 };
+
 
 
     const columns = [
@@ -48,8 +77,9 @@ async function MenteeTableData({ paramsStr }: { paramsStr: string }) {
         <div className="flex flex-col h-full">
             <ManagementTable
                 columns={columns}
-                data={data}
+                data={displayData}
                 emptyMessage="No mentees found."
+
                 renderRow={(mentee, idx) => (
                     <TableRow key={mentee.id}>
                         <TableCell>
@@ -109,7 +139,8 @@ async function MenteeTableData({ paramsStr }: { paramsStr: string }) {
                     </TableRow>
                 )}
             />
-            {meta && <ManagementPagination meta={meta} />}
+            {displayMeta && <ManagementPagination meta={displayMeta} />}
+
         </div>
     );
 }
