@@ -19,8 +19,9 @@ export async function getCurrentUser(): Promise<TUserIdentity | null> {
 
     if (firebaseSession) {
         try {
-            const data = JSON.parse(firebaseSession);
+            const data = JSON.parse(decodeURIComponent(firebaseSession));
             return {
+
                 id: "firebase-user",
                 name: data.name,
                 email: data.email,

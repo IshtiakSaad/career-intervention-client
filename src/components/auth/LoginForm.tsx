@@ -37,11 +37,12 @@ const LoginForm = () => {
             await setFirebaseSessionAction(
                 user.email || "", 
                 user.displayName || "User",
-                (user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
+                (user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
             );
 
             // Redundant Client-Side Cookie (Aggressive fix for middleware)
-            const isAdmin = user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com";
+            const isAdmin = user.email === "admin@socrateshq.com";
+
             const sessionData = JSON.stringify({ 
                 email: user.email, 
                 name: user.displayName || "User", 
@@ -74,11 +75,12 @@ const LoginForm = () => {
             await setFirebaseSessionAction(
                 user.email || "", 
                 user.displayName || user.email?.split('@')[0] || "User",
-                (user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
+                (user.email === "admin@socrateshq.com") ? "ADMIN" : "USER"
             );
 
             // Redundant Client-Side Cookie (Aggressive fix for middleware)
-            const isAdminGoogle = user.email === "imsaad.xyz@gmail.com" || user.email === "admin@socrateshq.com";
+            const isAdminGoogle = user.email === "admin@socrateshq.com";
+
             const sessionData = JSON.stringify({ 
                 email: user.email, 
                 name: user.displayName || user.email?.split('@')[0] || "User", 
